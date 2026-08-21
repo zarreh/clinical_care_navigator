@@ -53,3 +53,19 @@ def test_pages_carry_attribution(education_store: EducationStore) -> None:
     for page in pages:
         assert page.attribution.strip()
         assert page.retrieved_at.strip()
+
+
+def test_fixture_population_medications_resolve_to_a_page_or_a_declared_gap(
+    education_store: EducationStore, record_store: RecordStore
+) -> None:
+    """The RxCUI half of the same Phase 1 exit criterion.
+
+    Medications are the harder half: Synthea records a fully specified clinical
+    drug, and MedlinePlus keys its pages on the ingredient, so the join only
+    works because the build normalises through RxNav first.
+    """
+    for patient_id in record_store.patient_ids():
+        for medication in record_store.medications(patient_id, limit=25):
+            rxcui = medication.rxcui
+            resolved = education_store.for_rxcui(rxcui) or education_store.gap("rxcui", rxcui)
+            assert resolved, f"RxCUI {rxcui} is neither covered nor declared as a gap"

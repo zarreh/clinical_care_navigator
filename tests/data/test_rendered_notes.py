@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+import shutil
+import sqlite3
+from pathlib import Path
+
+from data.render_notes import render
 from navigator.store import RecordStore
 from tests.fixtures import FixtureStores
 
@@ -49,3 +54,35 @@ def test_no_unflagged_note_contains_the_payload(
         for note in record_store.notes(patient_id):
             if note.fixture_kind is None:
                 assert "ignore prior instructions" not in note.body.lower()
+
+
+def test_rendering_is_byte_stable(stores: FixtureStores, tmp_path: Path) -> None:
+    """The same store renders the same notes, byte for byte.
+
+    This is what makes a note-derived assertion meaningful: if a note body
+    changes, something upstream in the record changed, rather than the renderer
+    having felt differently that day.
+    """
+    working = tmp_path / "records.db"
+    shutil.copy2(stores.records_db, working)
+
+    render(working)
+    first = _note_bodies(working)
+    render(working)
+    second = _note_bodies(working)
+
+    assert first == second
+    assert first, "the fixture store rendered no notes"
+
+
+def _note_bodies(db_path: Path) -> dict[str, str]:
+    connection = sqlite3.connect(db_path)
+    try:
+        return {
+            str(note_id): str(body)
+            for note_id, body in connection.execute(
+                "SELECT note_id, body FROM clinical_notes ORDER BY note_id"
+            )
+        }
+    finally:
+        connection.close()
