@@ -6,8 +6,6 @@
     government-run pages that anyone can open. Both are rebuilt from scratch by
     one command; neither is stored in this repository.
 
-*Arrives in Phase 1.*
-
 ## Four sources
 
 | Need | Source | Licence | In the repo? |
@@ -46,5 +44,45 @@ visible coverage gap is a feature.
 make data
 ```
 
-The build **fails loudly** on an education row with an unresolvable citation or a
-range row without a source. It never coerces a bad value into a plausible one.
+Five steps, in order: fetch the population, build the typed store, render notes,
+fetch education, generate the rule table, bind the scenarios.
+
+The build **fails loudly** rather than degrading:
+
+| Condition | Result |
+|---|---|
+| A reference band with no cited source or no verbatim quote | Build fails |
+| A critical band asserted without a citation | Build fails — leave it empty instead |
+| An escalation rule with no published source URL and quote | Build fails |
+| An emitted citation URL that does not resolve | Build fails |
+| More or fewer than one planted injection fixture | Build fails |
+
+It never coerces a bad value into a plausible one.
+
+## What the build produced
+
+| Measure | Value |
+|---|---|
+| Patients | 25, selected deterministically toward covered analytes |
+| Rendered notes | 150, byte-stable for a fixed store |
+| Reference-range rows | 27, every band quoted from its published source |
+| Rows with a cited critical band | 8 |
+| Safety rules | 14, every escalation rule citing and quoting a source |
+| Education pages | 321 across 149 distinct URLs, all verified reachable |
+| Declared coverage gaps | 18 |
+
+See the [data profile](../evidence/data-profile.md) for the coverage chart.
+
+## Two honesty notes
+
+**Reference ranges are quoted, not paraphrased.** Each row carries the sentence
+its band came from, so an answer can show a reader the published text rather
+than asking them to trust a number. Where no published threshold could be
+quoted — a critical high for sodium, a critical low for calcium — the band is
+left **empty** rather than estimated.
+
+**The education cache is a build artifact, not a corpus.** NLM permits linking
+to and displaying what its services return, and recommends caching for 12–24
+hours; it does not permit copying MedlinePlus pages. So the cache holds only
+returned fields with a retrieval timestamp, it is never committed, and the
+committed test fixture carries citation metadata with the page bodies stripped.

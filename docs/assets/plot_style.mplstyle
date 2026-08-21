@@ -1,0 +1,17 @@
+# Shared aesthetic for every generated chart in docs/assets/.
+# Portfolio palette, no chartjunk, readable at 800px.
+figure.facecolor: white
+axes.facecolor: white
+axes.edgecolor: "#4b5563"
+axes.labelcolor: "#111827"
+axes.titleweight: bold
+axes.spines.top: False
+axes.spines.right: False
+axes.grid: True
+grid.color: "#e5e7eb"
+grid.linewidth: 0.6
+font.size: 11
+axes.prop_cycle: cycler("color", ["#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed"])
+figure.figsize: 8, 4.5
+savefig.dpi: 150
+savefig.bbox: tight

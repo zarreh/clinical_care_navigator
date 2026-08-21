@@ -27,6 +27,9 @@ accommodate.
 | 12 | Budget guardrail | `graph/budget.py` | A3 terminates with a *clinical* conservative template | **Essential** — the ceiling is shared, the breach response is not |
 | 13 | Narrow state projections | `graph/state.py` | Same idea, different views | **Essential convention** — third occurrence overall (UT wk11, UT wk13, A2) |
 | 14 | Two evaluation layers with metrics fixed before labelling | `evals/` | Different metrics | **Essential** — the runner is shareable, the metric set is not |
+| 15 | `plot_style.mplstyle` and the light/dark `_save` helper | `docs/generate_plots.py`, `docs/assets/` | Copied verbatim, then **made deterministic**: `metadata={"Date": None}` plus a pinned `svg.hashsalt` | **Essential fix** — A2's charts embed a timestamp, so its own no-drift rule cannot run. The shared version should carry A3's determinism |
+| 16 | Store repository layer with typed row models | `store/fact_store.py`, `store/models.py` | A3 adds a **row cap inside the store** and admits no unscoped clinical read | **Essential** — the cap is a minimum-necessary control in A3 and a cost control in A2 |
+| 17 | Build scripts as `data/` modules run by `make data` | `data/build_store.py` | Same shape; A3 adds fail-loud provenance checks | Incidental — the pattern is shared, the checks are domain-specific |
 
 ## Frontend components
 

@@ -8,6 +8,7 @@ data/education_cache/
 data/*.db
 data/*.csv
 data/education_coverage.json
+data/scenarios.json
 !data/lab_reference_ranges.csv
 *.sqlite
 *.sqlite3

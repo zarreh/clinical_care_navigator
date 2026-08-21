@@ -375,7 +375,7 @@ def insert_allergies(connection: sqlite3.Connection, cohort: set[str]) -> int:
     return len(rows)
 
 
-def insert_reference_ranges(connection: sqlite3.Connection) -> int:
+def insert_reference_ranges(connection: sqlite3.Connection, ranges_csv: Path = RANGES_CSV) -> int:
     """Load the curated range table, failing loudly on an uncited row.
 
     Launch gate §11.8: every reference-range row cites its source, and the build
@@ -383,17 +383,17 @@ def insert_reference_ranges(connection: sqlite3.Connection) -> int:
     of number this app must never quote.
     """
     rows: list[tuple[Any, ...]] = []
-    for line, row in enumerate(read_csv(RANGES_CSV), start=2):
+    for line, row in enumerate(read_csv(ranges_csv), start=2):
         loinc = row["loinc_code"]
         if not row["reference_source_url"] or not row["reference_source_quote"]:
             raise SystemExit(
-                f"{RANGES_CSV.name} line {line}: reference band for {loinc} has no cited source. "
+                f"{ranges_csv.name} line {line}: reference band for {loinc} has no cited source. "
                 "Every band must quote a published source (docs/PLAN.md §4.3)."
             )
         has_critical = bool(row["critical_low"] or row["critical_high"])
         if has_critical and not (row["critical_source_url"] and row["critical_source_quote"]):
             raise SystemExit(
-                f"{RANGES_CSV.name} line {line}: critical band for {loinc} has no cited source. "
+                f"{ranges_csv.name} line {line}: critical band for {loinc} has no cited source. "
                 "Leave the band empty rather than assert an uncited threshold."
             )
         rows.append(

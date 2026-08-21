@@ -205,8 +205,11 @@ class CoverageGap:
 class PolicyRule:
     """One row of the editable safety rule table.
 
-    `source_url` is mandatory for every red-flag rule: no escalation rule rests
-    on the author's own clinical judgement (docs/PLAN.md §4.4).
+    `source_url` and `source_quote` are mandatory for every escalation rule: no
+    rule that sends a patient to emergency care rests on the author's own
+    clinical judgement (docs/PLAN.md §4.4). Scope rules — dosing, medication
+    change — carry none, because they are boundaries this project set rather
+    than clinical findings, and that difference is worth keeping visible.
     """
 
     rule_id: str
@@ -217,7 +220,8 @@ class PolicyRule:
     description: str
     template_id: str
     severity: int
-    source_url: str | None
     source_name: str | None
+    source_url: str | None
+    source_quote: str | None
     version: int
     enabled: bool
