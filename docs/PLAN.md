@@ -337,9 +337,34 @@ fills the gap with generated text. That is canonical case 14 (§4.5) extended, a
 it is a better answer than a fallback corpus would be: in a citation-grounded
 system, a visible coverage gap is a feature.
 
-One thing still to verify at implementation time: that current NLM terms permit
-build-time caching at the volume used. The remedy if not is *fetch-on-demand with
-a short TTL* — never generated content.
+**Verified at implementation time, against the primary sources rather than the
+summary above (2026-08-20).** The answer is better than assumed, and it fixes one
+detail of the design:
+
+| Service | Terms | Rate limit |
+|---|---|---|
+| MedlinePlus Connect | Free, no key, no registration. Linking to and displaying returned data is permitted; **copying MedlinePlus pages is not**. NLM *recommends* caching for 12–24 hours | 100 req/min per IP |
+| MedlinePlus Web service | Free, no registration or licensing | 85 req/min per IP |
+| RxNav / RxNorm | Free, **no licence needed**. RxClass/SNOMED is not used, so its Affiliate licence never applies | 20 req/sec per IP |
+
+Build-time caching is therefore not merely permitted, it is what NLM asks for.
+Three consequences are now design constraints rather than assumptions:
+
+1. **The cache is a build artifact, not a corpus.** It stores only what the
+   service returns — title, URL, summary, attribution — with a `retrieved_at`
+   stamp and a TTL inside NLM's 12–24 hour window. It is never committed and the
+   app never mirrors a MedlinePlus page.
+2. **Contact metadata goes in the request, not the header.** The MedlinePlus Web
+   service asks for `email` and `tool` *parameters*; a descriptive `User-Agent`
+   is a courtesy on top, not the mechanism. The plan previously said only
+   `User-Agent`.
+3. **RxNav's attribution statement is verbatim and mandatory**, and the NLM name
+   and logo may not be used in the application itself. Both are in `NOTICE.md`.
+
+Live probes confirm the mechanism works end to end: LOINC `4548-4` resolves to
+*Hemoglobin A1C (HbA1c) Test*, `2823-3` to two pages, and an unknown code returns
+**zero entries** — which is the declared-gap path above, arriving for free from
+the service rather than needing to be detected.
 
 ### 4.3 Synthea has no clinical notes, and no reference ranges
 
@@ -1179,4 +1204,14 @@ Four closed on 2026-08-20 (§14). What remains is confirmation, not design.
 **2026-08-20 — Phase 0 built.** Walking skeleton streaming end to end; ruff,
 mypy --strict, import-linter, pytest, `make eval` and `mkdocs build --strict` all
 green. `docs/HARVEST.md` opened with 14 entries.
-```
+
+**2026-08-20 — Phase 1 licence verification closed.** The open item in §4.2 is
+answered against the primary sources, not a summary:
+
+| Change | Origin |
+|---|---|
+| Build-time caching is what NLM **recommends** (12–24h), not merely tolerates. MedlinePlus Connect permits linking to and displaying returned data but **not copying its pages**, so the cache holds only returned fields with a `retrieved_at` stamp and a TTL, and is never committed | Implementation finding |
+| Contact metadata is the `email` and `tool` **request parameters**, not a `User-Agent` header. §4.2 previously said `User-Agent` and was wrong | Implementation finding |
+| RxNav requires a **verbatim** attribution statement and forbids use of the NLM name or logo in the application. Both recorded in `NOTICE.md` | Implementation finding |
+| Live probes confirm the declared-gap path arrives free: an unknown LOINC code returns zero entries from Connect rather than a wrong page | Implementation finding |
+

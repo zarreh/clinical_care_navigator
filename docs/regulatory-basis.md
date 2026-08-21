@@ -43,6 +43,28 @@ constraint traceable to a named criterion.
 | Reference-range provenance | Stated as illustrative and adult-general |
 | MedlinePlus / RxNorm / LOINC attribution | Also in `NOTICE.md` |
 
+## Education-source terms, verified before the pipeline was written
+
+The plan required these to be checked against the primary sources rather than
+assumed, because the whole citation argument above rests on them.
+
+| Service | Terms | Rate limit |
+|---|---|---|
+| [MedlinePlus Connect](https://medlineplus.gov/medlineplus-connect/web-service/) | Free; no API key, no registration. Linking to and displaying returned data is permitted; **copying MedlinePlus pages is not**. NLM recommends caching for 12–24 hours | 100 requests/minute per IP |
+| [MedlinePlus Web service](https://medlineplus.gov/about/developers/webservices/) | Free of charge; no registration or licensing | 85 requests/minute per IP |
+| [RxNav / RxNorm](https://lhncbc.nlm.nih.gov/RxNav/TermsofService.html) | Free; no licence needed. RxClass/SNOMED CT is not used, so its Affiliate licence does not apply | 20 requests/second per IP |
+
+So the education cache is a **build artifact**, not a corpus: it holds only the
+fields the service returns — title, URL, summary, attribution — with a retrieval
+timestamp and a TTL inside NLM's recommended window. It is never committed and
+the application never mirrors a MedlinePlus page. Attribution appears in
+`NOTICE.md`, including RxNav's required verbatim statement.
+
+The **LOINC terminology table is deliberately not a dependency**, so its licence
+agreement never applies. Synthea's observations already carry LOINC codes and
+MedlinePlus Connect accepts a code directly; codes pass through, the table is
+never downloaded or redistributed.
+
 ## Two disclosures made deliberately
 
 **No clinician has reviewed the safety rules.** Every emergency red-flag rule is
