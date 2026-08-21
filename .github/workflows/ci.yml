@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  lint-type-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+      - name: Install project
+        run: uv sync --extra dev
+      - name: Ruff lint
+        run: uv run ruff check .
+      - name: Ruff format check
+        run: uv run ruff format --check .
+      - name: Mypy strict
+        run: uv run mypy
+      - name: Import linter
+        run: PYTHONPATH=src uv run lint-imports
+      - name: Pytest
+        run: uv run pytest -v --cov=navigator --cov-report=term-missing
+      - name: Layer 1 canonical eval (gates on regression)
+        run: make eval
+
+  docs-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+      - name: Install docs dependencies
+        run: uv sync --extra dev --extra docs
+      - name: Build docs (strict)
+        run: uv run mkdocs build --strict

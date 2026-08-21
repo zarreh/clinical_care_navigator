@@ -1,0 +1,114 @@
+[project]
+name = "navigator"
+version = "0.1.0"
+description = "A3 — Clinical Care Navigator: a patient-facing clinical assistant that is allowed to refuse"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    "langgraph>=0.2",
+    "langchain-core>=0.3",
+    "langchain-openai>=0.2",
+    "sse-starlette>=2.1",
+    "structlog>=24.4",
+    "slowapi>=0.1.9",
+    "httpx>=0.27",
+    "pandas>=2.2",
+    "textstat>=0.7",
+    "truststore>=0.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.7",
+    "mypy>=1.13",
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=6.0",
+    "import-linter>=2.1",
+    "detect-secrets>=1.5",
+    "pre-commit>=4.0",
+    "respx>=0.23",
+    "pandas-stubs>=2.2",
+]
+docs = [
+    "mkdocs>=1.6",
+    "mkdocs-material>=9.5",
+    "mkdocstrings[python]>=0.27",
+    "mkdocs-gen-files>=0.5",
+    "mkdocs-literate-nav>=0.6",
+    "mkdocs-glightbox>=0.4",
+    "matplotlib>=3.9",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/navigator"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "TID"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = "src"
+explicit_package_bases = true
+files = ["src", "data", "evals", "tests"]
+
+[[tool.mypy.overrides]]
+module = "textstat.*"
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.importlinter]
+root_package = "navigator"
+include_external_packages = true
+
+# docs/PLAN.md §9.3 rule 2: dependencies point one way.
+[[tool.importlinter.contracts]]
+name = "Layering: api -> graph -> guardrails -> tools -> retrieval -> store -> schemas"
+type = "layers"
+layers = [
+    "navigator.api",
+    "navigator.graph",
+    "navigator.guardrails",
+    "navigator.tools",
+    "navigator.retrieval",
+    "navigator.store",
+    "navigator.schemas",
+]
+
+[[tool.importlinter.contracts]]
+name = "chains never import nodes"
+type = "forbidden"
+source_modules = ["navigator.graph.chains"]
+forbidden_modules = ["navigator.graph.nodes"]
+
+[[tool.importlinter.contracts]]
+name = "tools, guardrails and retrieval never import graph"
+type = "forbidden"
+source_modules = [
+    "navigator.tools",
+    "navigator.guardrails",
+    "navigator.retrieval",
+]
+forbidden_modules = ["navigator.graph"]
+
+[[tool.importlinter.contracts]]
+name = "no DSPy or DeepEval outside evals/optimize"
+type = "forbidden"
+source_modules = ["navigator"]
+forbidden_modules = ["dspy", "deepeval"]

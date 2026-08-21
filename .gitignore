@@ -1,0 +1,55 @@
+# ---- Local-only source material. Never publish. See NOTICE.md ----
+reference/
+
+# ---- Data: fetched or generated at build time, never committed ----
+data/raw/
+data/synthea/
+data/education_cache/
+data/*.db
+data/*.csv
+!data/lab_reference_ranges.csv
+*.sqlite
+*.sqlite3
+
+# ---- Secrets ----
+.env
+.env.*
+!.env.example
+config.json
+*.pem
+*.key
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.import_linter_cache/
+.coverage
+coverage.xml
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# ---- Node / Next.js ----
+node_modules/
+.next/
+out/
+frontend/.env*
+frontend/openapi.json
+*.tsbuildinfo
+test-results/
+playwright-report/
+
+# ---- Docs: MkDocs build output, never committed ----
+site/
+.cache/
+
+# ---- Tooling ----
+.deepeval/
+.langgraph_api/
+.DS_Store

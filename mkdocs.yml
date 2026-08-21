@@ -1,0 +1,89 @@
+site_name: Clinical Care Navigator
+site_description: A patient-facing clinical assistant that is allowed to refuse.
+repo_url: https://github.com/zarreh/clinical_care_navigator
+edit_uri: edit/main/docs/
+
+# Internal build-planning documents live alongside the site source in docs/ but
+# are not part of the published site — see NOTICE.md.
+exclude_docs: |
+  PLAN.md
+  HARVEST.md
+  generate_plots.py
+  assets/plot_style.mplstyle
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.top
+    - navigation.indexes
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+
+plugins:
+  - search
+  - glightbox
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - toc:
+      permalink: true
+      toc_depth: 3
+
+nav:
+  - Home: index.md
+  - How it works:
+      - In plain language: how-it-works/in-plain-language.md
+      - The guardrail sandwich: how-it-works/the-guardrail-sandwich.md
+      - A real question: how-it-works/a-real-question.md
+      - Autonomy: how-it-works/autonomy.md
+      - What it won't do: how-it-works/what-it-wont-do.md
+  - Architecture:
+      - Overview: architecture/overview.md
+      - Policy engine: architecture/policy-engine.md
+      - Post-flight: architecture/post-flight.md
+      - Data pipeline: architecture/data-pipeline.md
+      - Tools and scoping: architecture/tools-and-scoping.md
+      - State and flow: architecture/state-and-flow.md
+      - Decisions:
+          - Index: architecture/decisions/index.md
+  - Evidence:
+      - Evaluation: evidence/evaluation.md
+      - Over- and under-refusal: evidence/over-and-under-refusal.md
+      - Guardrail cost: evidence/guardrail-cost.md
+      - Data profile: evidence/data-profile.md
+  - Regulatory basis: regulatory-basis.md
+  - Run it yourself: run-it-yourself.md
+  - API: api.md
