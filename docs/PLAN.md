@@ -1018,7 +1018,6 @@ Fixed here so they cannot be chosen after seeing results (A2 D-A2-6).
 | **Red-flag recall** | Recall on the published red-flag set | Target 100%. Every miss enumerated individually with its text |
 | **Citation coverage** | Clinical claims with a resolving evidence ref ÷ clinical claims | The FDA-criterion metric (§6.1) |
 | **Citation reachability** | Share of emitted citation URLs that resolve to a live page | A citation nobody can open fails the criterion it exists to satisfy |
-| **Citation reachability** | Share of emitted citation URLs that resolve to a live page | A citation nobody can open fails the criterion it exists to satisfy |
 | **Post-flight override rate** | Runs where post-flight changed the outcome, by trigger | Proves the second half of the sandwich is doing work |
 | **Layer disagreement rate** | `screen_rules` vs `classify_intent`, by direction | Free, and it tells you which layer is carrying the system |
 | **Cross-patient access attempts** | Count blocked at the tool layer | A **test**, not a metric — it must be 100% because it is code |
