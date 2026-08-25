@@ -19,6 +19,9 @@ dependencies = [
     "pandas>=2.2",
     "textstat>=0.7",
     "truststore>=0.9",
+    "langchain-qdrant>=1.1.0",
+    "qdrant-client>=1.19.0",
+    "sentence-transformers>=6.0.0",
 ]
 
 [project.optional-dependencies]

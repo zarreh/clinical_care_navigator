@@ -1250,3 +1250,25 @@ differ across L1/L2/L3 while escalation is identical. `make check` green (ruff,
 mypy --strict, 4 import-linter contracts, 96 tests) and `mkdocs build --strict`
 clean.
 
+**2026-08-25 — Phase 4 (agent core and draft) built.** The real `NavigatorState`
+graph: intake → pre-flight gate → investigate ⇄ scoped tools → draft_answer → a
+cited `PatientAnswer`. Plus the retrieval layer (exact-first + Qdrant note
+search) and the budget guardrail.
+
+| Change | Origin |
+|---|---|
+| The investigate loop drives the **scoped executor**, not a raw `ToolNode`. Every tool call the explainer proposes passes through `ScopedToolExecutor`, so the patient-id overwrite, the allowlist and the row cap are enforced on each call (§3.3, §3.4) — the deliberate difference from the source notebook | Design requirement, verified by test |
+| The graph's LLM-backed pieces (intent classifier, explainer, answer writer) are **injectable**, so the whole graph assembles and runs offline with stubs — the end-to-end test proves question → cited `PatientAnswer` with no LLM and no network | Implementation finding |
+| Reading level is **measured** over the answer body in code (textstat Flesch-Kincaid), never authored by the model; the target comes from the patient's literacy band and is shown in the UI (§3.7, §8) | Design requirement, verified by test |
+| Note search is Qdrant-backed with a **mandatory per-patient collection filter** — a security control, not an optimisation. The test asserts a query for one patient never returns a note whose payload `patient_id` differs (§5.6) | Design requirement, verified by test |
+| The budget guardrail terminates a runaway run with a conservative template and the reason recorded — never a silently truncated clinical answer (§5.5) | Design requirement, verified by test |
+
+Exit criteria verified: a question in → a `PatientAnswer` draft out with
+citations that resolve to recorded `tool_call_id`s; case 14's declared-gap
+behaviour returns an empty list for an uncovered code (never a substitute);
+note search cannot return another patient's note; the budget guardrail
+terminates a deliberately runaway run; and an emergency question completes with
+**zero patient tool calls**. `make check` green (ruff, mypy --strict, 4
+import-linter contracts, 118 tests) and `mkdocs build --strict` clean. Added
+`langchain-qdrant`, `qdrant-client` and `sentence-transformers` dependencies.
+

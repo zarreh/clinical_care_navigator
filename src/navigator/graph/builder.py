@@ -1,25 +1,138 @@
 """The only file that wires nodes and edges (docs/PLAN.md §9.3).
 
-Phase 0 wires the walking skeleton. The real graph (docs/PLAN.md §5.1) replaces
-`build_skeleton_graph` from Phase 3 onward; the node filename stays equal to the
-registered node name so it also equals the trace span name.
+`build_skeleton_graph` is the Phase 0 walking skeleton, kept so the streaming
+path stays proven. `build_navigator_graph` wires the real graph (§5.1): intake
+loads the patient header; the pre-flight gate (screen_rules ∥ classify_intent →
+resolve_policy) routes to a templated branch or into the investigate loop; the
+investigate loop drives the scoped executor; draft_answer produces the cited
+PatientAnswer. Post-flight arrives in Phase 5.
+
+Node filename == registered node name == trace span name (§9.3 rule 3).
 """
+
+from pathlib import Path
 
 from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 
+from navigator.graph.agents.explainer import Explainer, build_explainer
+from navigator.graph.chains.answer_writer import AnswerWriterChain, build_answer_writer_chain
+from navigator.graph.chains.intent_classifier import build_intent_classifier_chain
+from navigator.graph.edges import route_after_investigate, route_after_resolve_policy
+from navigator.graph.nodes.budget_exceeded import budget_exceeded_node
+from navigator.graph.nodes.classify_intent import build_classify_intent_node
 from navigator.graph.nodes.done import done
+from navigator.graph.nodes.draft_answer import build_draft_answer_node
 from navigator.graph.nodes.echo import echo
-from navigator.graph.state import SkeletonState
+from navigator.graph.nodes.intake import build_intake_node
+from navigator.graph.nodes.investigate import build_investigate_node
+from navigator.graph.nodes.resolve_policy_node import build_resolve_policy_node
+from navigator.graph.nodes.screen_rules import build_screen_rules_node
+from navigator.graph.nodes.template_response import build_template_response_node
+from navigator.graph.policies import build_fast_model, build_reasoning_model
+from navigator.graph.protocols import IntentClassifierChain
+from navigator.graph.state import NavigatorState, SkeletonState
+from navigator.guardrails.rule_engine import RuleEngine
+from navigator.prompts.loader import load_prompt
+from navigator.settings import Settings
+from navigator.store import DEFAULT_ROW_CAP, EducationStore, PolicyStore, RecordStore
+from navigator.tools import ScopedToolExecutor, build_registry
 
 SkeletonGraph = CompiledStateGraph[SkeletonState, None, SkeletonState, SkeletonState]
+NavigatorGraph = CompiledStateGraph[NavigatorState, None, NavigatorState, NavigatorState]
 
 
 def build_skeleton_graph() -> SkeletonGraph:
+    """Phase 0 walking skeleton: echo -> done."""
     workflow = StateGraph(SkeletonState)
     workflow.add_node("echo", echo)
     workflow.add_node("done", done)
     workflow.set_entry_point("echo")
     workflow.add_edge("echo", "done")
     workflow.add_edge("done", END)
+    return workflow.compile()
+
+
+def build_navigator_graph(
+    settings: Settings,
+    *,
+    intent_chain: IntentClassifierChain | None = None,
+    answer_writer_chain: AnswerWriterChain | None = None,
+    explainer: Explainer | None = None,
+) -> NavigatorGraph:
+    """The only function that wires the navigator graph's nodes and edges.
+
+    The LLM-backed pieces are injectable so the graph can be assembled and tested
+    offline with stubs; in production they are built from the configured models.
+    """
+    record_store = RecordStore(Path(settings.record_db_path))
+    education_store = EducationStore(Path(settings.education_db_path))
+    policy_store = PolicyStore(Path(settings.policy_db_path))
+    registry = build_registry(record_store, education_store)
+    executor = ScopedToolExecutor(registry)
+    rule_engine = RuleEngine(policy_store.enabled_rules())
+
+    if intent_chain is None or answer_writer_chain is None or explainer is None:
+        fast_model = build_fast_model(settings)
+        reasoning_model = build_reasoning_model(settings)
+        if intent_chain is None:
+            intent_chain = build_intent_classifier_chain(fast_model)
+        if answer_writer_chain is None:
+            answer_writer_chain = build_answer_writer_chain(reasoning_model)
+        if explainer is None:
+            # The explainer is bound to the full registry; the scoped executor
+            # enforces the per-run ToolScope on every call, so the model can
+            # propose anything and only in-scope calls execute (§3.3, §3.4).
+            explainer = build_explainer(fast_model, list(registry.tools.values()))
+
+    workflow = StateGraph(NavigatorState)
+    # mypy cannot resolve add_node's overloads against a factory-returned
+    # Callable (vs. a plain top-level function) — confirmed upstream limitation,
+    # not a real type error; each node is unit-tested directly in tests/graph/.
+    workflow.add_node("intake", build_intake_node(record_store, settings))  # type: ignore[arg-type]
+    workflow.add_node("screen_rules", build_screen_rules_node(rule_engine))  # type: ignore[arg-type]
+    workflow.add_node("classify_intent", build_classify_intent_node(intent_chain))  # type: ignore[arg-type]
+    workflow.add_node(
+        "resolve_policy",
+        build_resolve_policy_node(policy_store, registry, DEFAULT_ROW_CAP),  # type: ignore[arg-type]
+    )
+    workflow.add_node(
+        "investigate",
+        build_investigate_node(  # type: ignore[arg-type]
+            explainer, executor, load_prompt("explainer_v1")
+        ),
+    )
+    workflow.add_node("draft_answer", build_draft_answer_node(answer_writer_chain))  # type: ignore[arg-type]
+    workflow.add_node("template_response", build_template_response_node(policy_store))  # type: ignore[arg-type]
+    workflow.add_node("budget_exceeded", budget_exceeded_node)
+
+    workflow.set_entry_point("intake")
+    # screen_rules and classify_intent run in parallel after intake (§5.1).
+    workflow.add_edge("intake", "screen_rules")
+    workflow.add_edge("intake", "classify_intent")
+    workflow.add_edge("screen_rules", "resolve_policy")
+    workflow.add_edge("classify_intent", "resolve_policy")
+    workflow.add_conditional_edges(
+        "resolve_policy",
+        route_after_resolve_policy,
+        {
+            "emergency": "template_response",
+            "crisis": "template_response",
+            "out_of_scope": "template_response",
+            "clinician_review": "template_response",
+            "allow": "investigate",
+        },
+    )
+    workflow.add_conditional_edges(
+        "investigate",
+        route_after_investigate,
+        {
+            "investigate": "investigate",
+            "draft_answer": "draft_answer",
+            "budget_exceeded": "budget_exceeded",
+        },
+    )
+    workflow.add_edge("draft_answer", END)
+    workflow.add_edge("template_response", END)
+    workflow.add_edge("budget_exceeded", END)
     return workflow.compile()
