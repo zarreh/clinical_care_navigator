@@ -983,6 +983,8 @@
       
         
       
+        
+      
     
     
     
@@ -1127,6 +1129,34 @@
     
   
     Data profile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../evidence/post-flight-overrides/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Post-flight overrides
   
 
     
@@ -1860,7 +1890,9 @@ path stays proven. <code>build_navigator_graph</code> wires the real graph (§5.
 loads the patient header; the pre-flight gate (screen_rules ∥ classify_intent →
 resolve_policy) routes to a templated branch or into the investigate loop; the
 investigate loop drives the scoped executor; draft_answer produces the cited
-PatientAnswer. Post-flight arrives in Phase 5.</p>
+PatientAnswer; post-flight (extract_claims -&gt; post_flight) runs the three
+safety checks and routes to publish, a templated escalation, the review
+queue, or back into the loop for a missing citation (§5.3).</p>
 <p>Node filename == registered node name == trace span name (§9.3 rule 3).</p>
 
 
@@ -1887,7 +1919,7 @@ PatientAnswer. Post-flight arrives in Phase 5.</p>
 
 
 <h2 id="navigator.graph.builder.build_navigator_graph" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">build_navigator_graph</span><span class="p">(</span><span class="n">settings</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">intent_chain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">answer_writer_chain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">explainer</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">build_navigator_graph</span><span class="p">(</span><span class="n">settings</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">intent_chain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">answer_writer_chain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">explainer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">claim_extractor_chain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">scope_judge_chain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">checkpointer</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
 <a href="#navigator.graph.builder.build_navigator_graph" class="headerlink" title="Permanent link">¶</a></h2>
 
@@ -1901,24 +1933,7 @@ offline with stubs; in production they are built from the configured models.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/navigator/graph/builder.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tbody><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-56"> 56</a></span>
-<span class="normal"><a href="#__codelineno-0-57"> 57</a></span>
-<span class="normal"><a href="#__codelineno-0-58"> 58</a></span>
-<span class="normal"><a href="#__codelineno-0-59"> 59</a></span>
-<span class="normal"><a href="#__codelineno-0-60"> 60</a></span>
-<span class="normal"><a href="#__codelineno-0-61"> 61</a></span>
-<span class="normal"><a href="#__codelineno-0-62"> 62</a></span>
-<span class="normal"><a href="#__codelineno-0-63"> 63</a></span>
-<span class="normal"><a href="#__codelineno-0-64"> 64</a></span>
-<span class="normal"><a href="#__codelineno-0-65"> 65</a></span>
-<span class="normal"><a href="#__codelineno-0-66"> 66</a></span>
-<span class="normal"><a href="#__codelineno-0-67"> 67</a></span>
-<span class="normal"><a href="#__codelineno-0-68"> 68</a></span>
-<span class="normal"><a href="#__codelineno-0-69"> 69</a></span>
-<span class="normal"><a href="#__codelineno-0-70"> 70</a></span>
-<span class="normal"><a href="#__codelineno-0-71"> 71</a></span>
-<span class="normal"><a href="#__codelineno-0-72"> 72</a></span>
-<span class="normal"><a href="#__codelineno-0-73"> 73</a></span>
+              <div class="highlight"><table class="highlighttable"><tbody><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-73"> 73</a></span>
 <span class="normal"><a href="#__codelineno-0-74"> 74</a></span>
 <span class="normal"><a href="#__codelineno-0-75"> 75</a></span>
 <span class="normal"><a href="#__codelineno-0-76"> 76</a></span>
@@ -1983,89 +1998,194 @@ offline with stubs; in production they are built from the configured models.</p>
 <span class="normal"><a href="#__codelineno-0-135">135</a></span>
 <span class="normal"><a href="#__codelineno-0-136">136</a></span>
 <span class="normal"><a href="#__codelineno-0-137">137</a></span>
-<span class="normal"><a href="#__codelineno-0-138">138</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-56" name="__codelineno-0-56"></a><span class="k">def</span><span class="w"> </span><span class="nf">build_navigator_graph</span><span class="p">(</span>
-<a id="__codelineno-0-57" name="__codelineno-0-57"></a>    <span class="n">settings</span><span class="p">:</span> <span class="n">Settings</span><span class="p">,</span>
-<a id="__codelineno-0-58" name="__codelineno-0-58"></a>    <span class="o">*</span><span class="p">,</span>
-<a id="__codelineno-0-59" name="__codelineno-0-59"></a>    <span class="n">intent_chain</span><span class="p">:</span> <span class="n">IntentClassifierChain</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-60" name="__codelineno-0-60"></a>    <span class="n">answer_writer_chain</span><span class="p">:</span> <span class="n">AnswerWriterChain</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-61" name="__codelineno-0-61"></a>    <span class="n">explainer</span><span class="p">:</span> <span class="n">Explainer</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-62" name="__codelineno-0-62"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NavigatorGraph</span><span class="p">:</span>
-<a id="__codelineno-0-63" name="__codelineno-0-63"></a><span class="w">    </span><span class="sd">"""The only function that wires the navigator graph's nodes and edges.</span>
-<a id="__codelineno-0-64" name="__codelineno-0-64"></a>
-<a id="__codelineno-0-65" name="__codelineno-0-65"></a><span class="sd">    The LLM-backed pieces are injectable so the graph can be assembled and tested</span>
-<a id="__codelineno-0-66" name="__codelineno-0-66"></a><span class="sd">    offline with stubs; in production they are built from the configured models.</span>
-<a id="__codelineno-0-67" name="__codelineno-0-67"></a><span class="sd">    """</span>
-<a id="__codelineno-0-68" name="__codelineno-0-68"></a>    <span class="n">record_store</span> <span class="o">=</span> <span class="n">RecordStore</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">record_db_path</span><span class="p">))</span>
-<a id="__codelineno-0-69" name="__codelineno-0-69"></a>    <span class="n">education_store</span> <span class="o">=</span> <span class="n">EducationStore</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">education_db_path</span><span class="p">))</span>
-<a id="__codelineno-0-70" name="__codelineno-0-70"></a>    <span class="n">policy_store</span> <span class="o">=</span> <span class="n">PolicyStore</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">policy_db_path</span><span class="p">))</span>
-<a id="__codelineno-0-71" name="__codelineno-0-71"></a>    <span class="n">registry</span> <span class="o">=</span> <span class="n">build_registry</span><span class="p">(</span><span class="n">record_store</span><span class="p">,</span> <span class="n">education_store</span><span class="p">)</span>
-<a id="__codelineno-0-72" name="__codelineno-0-72"></a>    <span class="n">executor</span> <span class="o">=</span> <span class="n">ScopedToolExecutor</span><span class="p">(</span><span class="n">registry</span><span class="p">)</span>
-<a id="__codelineno-0-73" name="__codelineno-0-73"></a>    <span class="n">rule_engine</span> <span class="o">=</span> <span class="n">RuleEngine</span><span class="p">(</span><span class="n">policy_store</span><span class="o">.</span><span class="n">enabled_rules</span><span class="p">())</span>
-<a id="__codelineno-0-74" name="__codelineno-0-74"></a>
-<a id="__codelineno-0-75" name="__codelineno-0-75"></a>    <span class="k">if</span> <span class="n">intent_chain</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">answer_writer_chain</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">explainer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-76" name="__codelineno-0-76"></a>        <span class="n">fast_model</span> <span class="o">=</span> <span class="n">build_fast_model</span><span class="p">(</span><span class="n">settings</span><span class="p">)</span>
-<a id="__codelineno-0-77" name="__codelineno-0-77"></a>        <span class="n">reasoning_model</span> <span class="o">=</span> <span class="n">build_reasoning_model</span><span class="p">(</span><span class="n">settings</span><span class="p">)</span>
-<a id="__codelineno-0-78" name="__codelineno-0-78"></a>        <span class="k">if</span> <span class="n">intent_chain</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-79" name="__codelineno-0-79"></a>            <span class="n">intent_chain</span> <span class="o">=</span> <span class="n">build_intent_classifier_chain</span><span class="p">(</span><span class="n">fast_model</span><span class="p">)</span>
-<a id="__codelineno-0-80" name="__codelineno-0-80"></a>        <span class="k">if</span> <span class="n">answer_writer_chain</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-81" name="__codelineno-0-81"></a>            <span class="n">answer_writer_chain</span> <span class="o">=</span> <span class="n">build_answer_writer_chain</span><span class="p">(</span><span class="n">reasoning_model</span><span class="p">)</span>
-<a id="__codelineno-0-82" name="__codelineno-0-82"></a>        <span class="k">if</span> <span class="n">explainer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-83" name="__codelineno-0-83"></a>            <span class="c1"># The explainer is bound to the full registry; the scoped executor</span>
-<a id="__codelineno-0-84" name="__codelineno-0-84"></a>            <span class="c1"># enforces the per-run ToolScope on every call, so the model can</span>
-<a id="__codelineno-0-85" name="__codelineno-0-85"></a>            <span class="c1"># propose anything and only in-scope calls execute (§3.3, §3.4).</span>
-<a id="__codelineno-0-86" name="__codelineno-0-86"></a>            <span class="n">explainer</span> <span class="o">=</span> <span class="n">build_explainer</span><span class="p">(</span><span class="n">fast_model</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">registry</span><span class="o">.</span><span class="n">tools</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
-<a id="__codelineno-0-87" name="__codelineno-0-87"></a>
-<a id="__codelineno-0-88" name="__codelineno-0-88"></a>    <span class="n">workflow</span> <span class="o">=</span> <span class="n">StateGraph</span><span class="p">(</span><span class="n">NavigatorState</span><span class="p">)</span>
-<a id="__codelineno-0-89" name="__codelineno-0-89"></a>    <span class="c1"># mypy cannot resolve add_node's overloads against a factory-returned</span>
-<a id="__codelineno-0-90" name="__codelineno-0-90"></a>    <span class="c1"># Callable (vs. a plain top-level function) — confirmed upstream limitation,</span>
-<a id="__codelineno-0-91" name="__codelineno-0-91"></a>    <span class="c1"># not a real type error; each node is unit-tested directly in tests/graph/.</span>
-<a id="__codelineno-0-92" name="__codelineno-0-92"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="s2">"intake"</span><span class="p">,</span> <span class="n">build_intake_node</span><span class="p">(</span><span class="n">record_store</span><span class="p">,</span> <span class="n">settings</span><span class="p">))</span>  <span class="c1"># type: ignore[arg-type]</span>
-<a id="__codelineno-0-93" name="__codelineno-0-93"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="s2">"screen_rules"</span><span class="p">,</span> <span class="n">build_screen_rules_node</span><span class="p">(</span><span class="n">rule_engine</span><span class="p">))</span>  <span class="c1"># type: ignore[arg-type]</span>
-<a id="__codelineno-0-94" name="__codelineno-0-94"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="s2">"classify_intent"</span><span class="p">,</span> <span class="n">build_classify_intent_node</span><span class="p">(</span><span class="n">intent_chain</span><span class="p">))</span>  <span class="c1"># type: ignore[arg-type]</span>
-<a id="__codelineno-0-95" name="__codelineno-0-95"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span>
-<a id="__codelineno-0-96" name="__codelineno-0-96"></a>        <span class="s2">"resolve_policy"</span><span class="p">,</span>
-<a id="__codelineno-0-97" name="__codelineno-0-97"></a>        <span class="n">build_resolve_policy_node</span><span class="p">(</span><span class="n">policy_store</span><span class="p">,</span> <span class="n">registry</span><span class="p">,</span> <span class="n">DEFAULT_ROW_CAP</span><span class="p">),</span>  <span class="c1"># type: ignore[arg-type]</span>
-<a id="__codelineno-0-98" name="__codelineno-0-98"></a>    <span class="p">)</span>
-<a id="__codelineno-0-99" name="__codelineno-0-99"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span>
-<a id="__codelineno-0-100" name="__codelineno-0-100"></a>        <span class="s2">"investigate"</span><span class="p">,</span>
-<a id="__codelineno-0-101" name="__codelineno-0-101"></a>        <span class="n">build_investigate_node</span><span class="p">(</span>  <span class="c1"># type: ignore[arg-type]</span>
-<a id="__codelineno-0-102" name="__codelineno-0-102"></a>            <span class="n">explainer</span><span class="p">,</span> <span class="n">executor</span><span class="p">,</span> <span class="n">load_prompt</span><span class="p">(</span><span class="s2">"explainer_v1"</span><span class="p">)</span>
-<a id="__codelineno-0-103" name="__codelineno-0-103"></a>        <span class="p">),</span>
-<a id="__codelineno-0-104" name="__codelineno-0-104"></a>    <span class="p">)</span>
-<a id="__codelineno-0-105" name="__codelineno-0-105"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="s2">"draft_answer"</span><span class="p">,</span> <span class="n">build_draft_answer_node</span><span class="p">(</span><span class="n">answer_writer_chain</span><span class="p">))</span>  <span class="c1"># type: ignore[arg-type]</span>
-<a id="__codelineno-0-106" name="__codelineno-0-106"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="s2">"template_response"</span><span class="p">,</span> <span class="n">build_template_response_node</span><span class="p">(</span><span class="n">policy_store</span><span class="p">))</span>  <span class="c1"># type: ignore[arg-type]</span>
-<a id="__codelineno-0-107" name="__codelineno-0-107"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="s2">"budget_exceeded"</span><span class="p">,</span> <span class="n">budget_exceeded_node</span><span class="p">)</span>
-<a id="__codelineno-0-108" name="__codelineno-0-108"></a>
-<a id="__codelineno-0-109" name="__codelineno-0-109"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">set_entry_point</span><span class="p">(</span><span class="s2">"intake"</span><span class="p">)</span>
-<a id="__codelineno-0-110" name="__codelineno-0-110"></a>    <span class="c1"># screen_rules and classify_intent run in parallel after intake (§5.1).</span>
-<a id="__codelineno-0-111" name="__codelineno-0-111"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="s2">"intake"</span><span class="p">,</span> <span class="s2">"screen_rules"</span><span class="p">)</span>
-<a id="__codelineno-0-112" name="__codelineno-0-112"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="s2">"intake"</span><span class="p">,</span> <span class="s2">"classify_intent"</span><span class="p">)</span>
-<a id="__codelineno-0-113" name="__codelineno-0-113"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="s2">"screen_rules"</span><span class="p">,</span> <span class="s2">"resolve_policy"</span><span class="p">)</span>
-<a id="__codelineno-0-114" name="__codelineno-0-114"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="s2">"classify_intent"</span><span class="p">,</span> <span class="s2">"resolve_policy"</span><span class="p">)</span>
-<a id="__codelineno-0-115" name="__codelineno-0-115"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_conditional_edges</span><span class="p">(</span>
-<a id="__codelineno-0-116" name="__codelineno-0-116"></a>        <span class="s2">"resolve_policy"</span><span class="p">,</span>
-<a id="__codelineno-0-117" name="__codelineno-0-117"></a>        <span class="n">route_after_resolve_policy</span><span class="p">,</span>
-<a id="__codelineno-0-118" name="__codelineno-0-118"></a>        <span class="p">{</span>
-<a id="__codelineno-0-119" name="__codelineno-0-119"></a>            <span class="s2">"emergency"</span><span class="p">:</span> <span class="s2">"template_response"</span><span class="p">,</span>
-<a id="__codelineno-0-120" name="__codelineno-0-120"></a>            <span class="s2">"crisis"</span><span class="p">:</span> <span class="s2">"template_response"</span><span class="p">,</span>
-<a id="__codelineno-0-121" name="__codelineno-0-121"></a>            <span class="s2">"out_of_scope"</span><span class="p">:</span> <span class="s2">"template_response"</span><span class="p">,</span>
-<a id="__codelineno-0-122" name="__codelineno-0-122"></a>            <span class="s2">"clinician_review"</span><span class="p">:</span> <span class="s2">"template_response"</span><span class="p">,</span>
-<a id="__codelineno-0-123" name="__codelineno-0-123"></a>            <span class="s2">"allow"</span><span class="p">:</span> <span class="s2">"investigate"</span><span class="p">,</span>
-<a id="__codelineno-0-124" name="__codelineno-0-124"></a>        <span class="p">},</span>
-<a id="__codelineno-0-125" name="__codelineno-0-125"></a>    <span class="p">)</span>
-<a id="__codelineno-0-126" name="__codelineno-0-126"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_conditional_edges</span><span class="p">(</span>
-<a id="__codelineno-0-127" name="__codelineno-0-127"></a>        <span class="s2">"investigate"</span><span class="p">,</span>
-<a id="__codelineno-0-128" name="__codelineno-0-128"></a>        <span class="n">route_after_investigate</span><span class="p">,</span>
-<a id="__codelineno-0-129" name="__codelineno-0-129"></a>        <span class="p">{</span>
-<a id="__codelineno-0-130" name="__codelineno-0-130"></a>            <span class="s2">"investigate"</span><span class="p">:</span> <span class="s2">"investigate"</span><span class="p">,</span>
-<a id="__codelineno-0-131" name="__codelineno-0-131"></a>            <span class="s2">"draft_answer"</span><span class="p">:</span> <span class="s2">"draft_answer"</span><span class="p">,</span>
-<a id="__codelineno-0-132" name="__codelineno-0-132"></a>            <span class="s2">"budget_exceeded"</span><span class="p">:</span> <span class="s2">"budget_exceeded"</span><span class="p">,</span>
-<a id="__codelineno-0-133" name="__codelineno-0-133"></a>        <span class="p">},</span>
-<a id="__codelineno-0-134" name="__codelineno-0-134"></a>    <span class="p">)</span>
-<a id="__codelineno-0-135" name="__codelineno-0-135"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="s2">"draft_answer"</span><span class="p">,</span> <span class="n">END</span><span class="p">)</span>
-<a id="__codelineno-0-136" name="__codelineno-0-136"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="s2">"template_response"</span><span class="p">,</span> <span class="n">END</span><span class="p">)</span>
-<a id="__codelineno-0-137" name="__codelineno-0-137"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="s2">"budget_exceeded"</span><span class="p">,</span> <span class="n">END</span><span class="p">)</span>
-<a id="__codelineno-0-138" name="__codelineno-0-138"></a>    <span class="k">return</span> <span class="n">workflow</span><span class="o">.</span><span class="n">compile</span><span class="p">()</span>
+<span class="normal"><a href="#__codelineno-0-138">138</a></span>
+<span class="normal"><a href="#__codelineno-0-139">139</a></span>
+<span class="normal"><a href="#__codelineno-0-140">140</a></span>
+<span class="normal"><a href="#__codelineno-0-141">141</a></span>
+<span class="normal"><a href="#__codelineno-0-142">142</a></span>
+<span class="normal"><a href="#__codelineno-0-143">143</a></span>
+<span class="normal"><a href="#__codelineno-0-144">144</a></span>
+<span class="normal"><a href="#__codelineno-0-145">145</a></span>
+<span class="normal"><a href="#__codelineno-0-146">146</a></span>
+<span class="normal"><a href="#__codelineno-0-147">147</a></span>
+<span class="normal"><a href="#__codelineno-0-148">148</a></span>
+<span class="normal"><a href="#__codelineno-0-149">149</a></span>
+<span class="normal"><a href="#__codelineno-0-150">150</a></span>
+<span class="normal"><a href="#__codelineno-0-151">151</a></span>
+<span class="normal"><a href="#__codelineno-0-152">152</a></span>
+<span class="normal"><a href="#__codelineno-0-153">153</a></span>
+<span class="normal"><a href="#__codelineno-0-154">154</a></span>
+<span class="normal"><a href="#__codelineno-0-155">155</a></span>
+<span class="normal"><a href="#__codelineno-0-156">156</a></span>
+<span class="normal"><a href="#__codelineno-0-157">157</a></span>
+<span class="normal"><a href="#__codelineno-0-158">158</a></span>
+<span class="normal"><a href="#__codelineno-0-159">159</a></span>
+<span class="normal"><a href="#__codelineno-0-160">160</a></span>
+<span class="normal"><a href="#__codelineno-0-161">161</a></span>
+<span class="normal"><a href="#__codelineno-0-162">162</a></span>
+<span class="normal"><a href="#__codelineno-0-163">163</a></span>
+<span class="normal"><a href="#__codelineno-0-164">164</a></span>
+<span class="normal"><a href="#__codelineno-0-165">165</a></span>
+<span class="normal"><a href="#__codelineno-0-166">166</a></span>
+<span class="normal"><a href="#__codelineno-0-167">167</a></span>
+<span class="normal"><a href="#__codelineno-0-168">168</a></span>
+<span class="normal"><a href="#__codelineno-0-169">169</a></span>
+<span class="normal"><a href="#__codelineno-0-170">170</a></span>
+<span class="normal"><a href="#__codelineno-0-171">171</a></span>
+<span class="normal"><a href="#__codelineno-0-172">172</a></span>
+<span class="normal"><a href="#__codelineno-0-173">173</a></span>
+<span class="normal"><a href="#__codelineno-0-174">174</a></span>
+<span class="normal"><a href="#__codelineno-0-175">175</a></span>
+<span class="normal"><a href="#__codelineno-0-176">176</a></span>
+<span class="normal"><a href="#__codelineno-0-177">177</a></span>
+<span class="normal"><a href="#__codelineno-0-178">178</a></span>
+<span class="normal"><a href="#__codelineno-0-179">179</a></span>
+<span class="normal"><a href="#__codelineno-0-180">180</a></span>
+<span class="normal"><a href="#__codelineno-0-181">181</a></span>
+<span class="normal"><a href="#__codelineno-0-182">182</a></span>
+<span class="normal"><a href="#__codelineno-0-183">183</a></span>
+<span class="normal"><a href="#__codelineno-0-184">184</a></span>
+<span class="normal"><a href="#__codelineno-0-185">185</a></span>
+<span class="normal"><a href="#__codelineno-0-186">186</a></span>
+<span class="normal"><a href="#__codelineno-0-187">187</a></span>
+<span class="normal"><a href="#__codelineno-0-188">188</a></span>
+<span class="normal"><a href="#__codelineno-0-189">189</a></span>
+<span class="normal"><a href="#__codelineno-0-190">190</a></span>
+<span class="normal"><a href="#__codelineno-0-191">191</a></span>
+<span class="normal"><a href="#__codelineno-0-192">192</a></span>
+<span class="normal"><a href="#__codelineno-0-193">193</a></span>
+<span class="normal"><a href="#__codelineno-0-194">194</a></span>
+<span class="normal"><a href="#__codelineno-0-195">195</a></span>
+<span class="normal"><a href="#__codelineno-0-196">196</a></span>
+<span class="normal"><a href="#__codelineno-0-197">197</a></span>
+<span class="normal"><a href="#__codelineno-0-198">198</a></span>
+<span class="normal"><a href="#__codelineno-0-199">199</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-73" name="__codelineno-0-73"></a><span class="k">def</span><span class="w"> </span><span class="nf">build_navigator_graph</span><span class="p">(</span>
+<a id="__codelineno-0-74" name="__codelineno-0-74"></a>    <span class="n">settings</span><span class="p">:</span> <span class="n">Settings</span><span class="p">,</span>
+<a id="__codelineno-0-75" name="__codelineno-0-75"></a>    <span class="o">*</span><span class="p">,</span>
+<a id="__codelineno-0-76" name="__codelineno-0-76"></a>    <span class="n">intent_chain</span><span class="p">:</span> <span class="n">IntentClassifierChain</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-77" name="__codelineno-0-77"></a>    <span class="n">answer_writer_chain</span><span class="p">:</span> <span class="n">AnswerWriterChain</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-78" name="__codelineno-0-78"></a>    <span class="n">explainer</span><span class="p">:</span> <span class="n">Explainer</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-79" name="__codelineno-0-79"></a>    <span class="n">claim_extractor_chain</span><span class="p">:</span> <span class="n">ClaimExtractorChain</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-80" name="__codelineno-0-80"></a>    <span class="n">scope_judge_chain</span><span class="p">:</span> <span class="n">ScopeJudgeChain</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-81" name="__codelineno-0-81"></a>    <span class="n">checkpointer</span><span class="p">:</span> <span class="n">Checkpointer</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-82" name="__codelineno-0-82"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NavigatorGraph</span><span class="p">:</span>
+<a id="__codelineno-0-83" name="__codelineno-0-83"></a><span class="w">    </span><span class="sd">"""The only function that wires the navigator graph's nodes and edges.</span>
+<a id="__codelineno-0-84" name="__codelineno-0-84"></a>
+<a id="__codelineno-0-85" name="__codelineno-0-85"></a><span class="sd">    The LLM-backed pieces are injectable so the graph can be assembled and tested</span>
+<a id="__codelineno-0-86" name="__codelineno-0-86"></a><span class="sd">    offline with stubs; in production they are built from the configured models.</span>
+<a id="__codelineno-0-87" name="__codelineno-0-87"></a><span class="sd">    """</span>
+<a id="__codelineno-0-88" name="__codelineno-0-88"></a>    <span class="n">record_store</span> <span class="o">=</span> <span class="n">RecordStore</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">record_db_path</span><span class="p">))</span>
+<a id="__codelineno-0-89" name="__codelineno-0-89"></a>    <span class="n">education_store</span> <span class="o">=</span> <span class="n">EducationStore</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">education_db_path</span><span class="p">))</span>
+<a id="__codelineno-0-90" name="__codelineno-0-90"></a>    <span class="n">policy_store</span> <span class="o">=</span> <span class="n">PolicyStore</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">policy_db_path</span><span class="p">))</span>
+<a id="__codelineno-0-91" name="__codelineno-0-91"></a>    <span class="n">registry</span> <span class="o">=</span> <span class="n">build_registry</span><span class="p">(</span><span class="n">record_store</span><span class="p">,</span> <span class="n">education_store</span><span class="p">)</span>
+<a id="__codelineno-0-92" name="__codelineno-0-92"></a>    <span class="n">executor</span> <span class="o">=</span> <span class="n">ScopedToolExecutor</span><span class="p">(</span><span class="n">registry</span><span class="p">)</span>
+<a id="__codelineno-0-93" name="__codelineno-0-93"></a>    <span class="n">rule_engine</span> <span class="o">=</span> <span class="n">RuleEngine</span><span class="p">(</span><span class="n">policy_store</span><span class="o">.</span><span class="n">enabled_rules</span><span class="p">())</span>
+<a id="__codelineno-0-94" name="__codelineno-0-94"></a>
+<a id="__codelineno-0-95" name="__codelineno-0-95"></a>    <span class="k">if</span> <span class="p">(</span>
+<a id="__codelineno-0-96" name="__codelineno-0-96"></a>        <span class="n">intent_chain</span> <span class="ow">is</span> <span class="kc">None</span>
+<a id="__codelineno-0-97" name="__codelineno-0-97"></a>        <span class="ow">or</span> <span class="n">answer_writer_chain</span> <span class="ow">is</span> <span class="kc">None</span>
+<a id="__codelineno-0-98" name="__codelineno-0-98"></a>        <span class="ow">or</span> <span class="n">explainer</span> <span class="ow">is</span> <span class="kc">None</span>
+<a id="__codelineno-0-99" name="__codelineno-0-99"></a>        <span class="ow">or</span> <span class="n">claim_extractor_chain</span> <span class="ow">is</span> <span class="kc">None</span>
+<a id="__codelineno-0-100" name="__codelineno-0-100"></a>        <span class="ow">or</span> <span class="n">scope_judge_chain</span> <span class="ow">is</span> <span class="kc">None</span>
+<a id="__codelineno-0-101" name="__codelineno-0-101"></a>    <span class="p">):</span>
+<a id="__codelineno-0-102" name="__codelineno-0-102"></a>        <span class="n">fast_model</span> <span class="o">=</span> <span class="n">build_fast_model</span><span class="p">(</span><span class="n">settings</span><span class="p">)</span>
+<a id="__codelineno-0-103" name="__codelineno-0-103"></a>        <span class="n">reasoning_model</span> <span class="o">=</span> <span class="n">build_reasoning_model</span><span class="p">(</span><span class="n">settings</span><span class="p">)</span>
+<a id="__codelineno-0-104" name="__codelineno-0-104"></a>        <span class="k">if</span> <span class="n">intent_chain</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-105" name="__codelineno-0-105"></a>            <span class="n">intent_chain</span> <span class="o">=</span> <span class="n">build_intent_classifier_chain</span><span class="p">(</span><span class="n">fast_model</span><span class="p">)</span>
+<a id="__codelineno-0-106" name="__codelineno-0-106"></a>        <span class="k">if</span> <span class="n">answer_writer_chain</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-107" name="__codelineno-0-107"></a>            <span class="n">answer_writer_chain</span> <span class="o">=</span> <span class="n">build_answer_writer_chain</span><span class="p">(</span><span class="n">reasoning_model</span><span class="p">)</span>
+<a id="__codelineno-0-108" name="__codelineno-0-108"></a>        <span class="k">if</span> <span class="n">explainer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-109" name="__codelineno-0-109"></a>            <span class="c1"># The explainer is bound to the full registry; the scoped executor</span>
+<a id="__codelineno-0-110" name="__codelineno-0-110"></a>            <span class="c1"># enforces the per-run ToolScope on every call, so the model can</span>
+<a id="__codelineno-0-111" name="__codelineno-0-111"></a>            <span class="c1"># propose anything and only in-scope calls execute (§3.3, §3.4).</span>
+<a id="__codelineno-0-112" name="__codelineno-0-112"></a>            <span class="n">explainer</span> <span class="o">=</span> <span class="n">build_explainer</span><span class="p">(</span><span class="n">fast_model</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">registry</span><span class="o">.</span><span class="n">tools</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+<a id="__codelineno-0-113" name="__codelineno-0-113"></a>        <span class="k">if</span> <span class="n">claim_extractor_chain</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-114" name="__codelineno-0-114"></a>            <span class="c1"># Claim extraction is a mechanical decomposition -&gt; fast model.</span>
+<a id="__codelineno-0-115" name="__codelineno-0-115"></a>            <span class="n">claim_extractor_chain</span> <span class="o">=</span> <span class="n">build_claim_extractor_chain</span><span class="p">(</span><span class="n">fast_model</span><span class="p">)</span>
+<a id="__codelineno-0-116" name="__codelineno-0-116"></a>        <span class="k">if</span> <span class="n">scope_judge_chain</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-117" name="__codelineno-0-117"></a>            <span class="c1"># The scope judge is the one graded call -&gt; reasoning model.</span>
+<a id="__codelineno-0-118" name="__codelineno-0-118"></a>            <span class="n">scope_judge_chain</span> <span class="o">=</span> <span class="n">build_scope_judge_chain</span><span class="p">(</span><span class="n">reasoning_model</span><span class="p">)</span>
+<a id="__codelineno-0-119" name="__codelineno-0-119"></a>
+<a id="__codelineno-0-120" name="__codelineno-0-120"></a>    <span class="n">workflow</span> <span class="o">=</span> <span class="n">StateGraph</span><span class="p">(</span><span class="n">NavigatorState</span><span class="p">)</span>
+<a id="__codelineno-0-121" name="__codelineno-0-121"></a>    <span class="c1"># mypy cannot resolve add_node's overloads against a factory-returned</span>
+<a id="__codelineno-0-122" name="__codelineno-0-122"></a>    <span class="c1"># Callable (vs. a plain top-level function) — confirmed upstream limitation,</span>
+<a id="__codelineno-0-123" name="__codelineno-0-123"></a>    <span class="c1"># not a real type error; each node is unit-tested directly in tests/graph/.</span>
+<a id="__codelineno-0-124" name="__codelineno-0-124"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="s2">"intake"</span><span class="p">,</span> <span class="n">build_intake_node</span><span class="p">(</span><span class="n">record_store</span><span class="p">,</span> <span class="n">settings</span><span class="p">))</span>  <span class="c1"># type: ignore[arg-type]</span>
+<a id="__codelineno-0-125" name="__codelineno-0-125"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="s2">"screen_rules"</span><span class="p">,</span> <span class="n">build_screen_rules_node</span><span class="p">(</span><span class="n">rule_engine</span><span class="p">))</span>  <span class="c1"># type: ignore[arg-type]</span>
+<a id="__codelineno-0-126" name="__codelineno-0-126"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="s2">"classify_intent"</span><span class="p">,</span> <span class="n">build_classify_intent_node</span><span class="p">(</span><span class="n">intent_chain</span><span class="p">))</span>  <span class="c1"># type: ignore[arg-type]</span>
+<a id="__codelineno-0-127" name="__codelineno-0-127"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span>
+<a id="__codelineno-0-128" name="__codelineno-0-128"></a>        <span class="s2">"resolve_policy"</span><span class="p">,</span>
+<a id="__codelineno-0-129" name="__codelineno-0-129"></a>        <span class="n">build_resolve_policy_node</span><span class="p">(</span><span class="n">policy_store</span><span class="p">,</span> <span class="n">registry</span><span class="p">,</span> <span class="n">DEFAULT_ROW_CAP</span><span class="p">),</span>  <span class="c1"># type: ignore[arg-type]</span>
+<a id="__codelineno-0-130" name="__codelineno-0-130"></a>    <span class="p">)</span>
+<a id="__codelineno-0-131" name="__codelineno-0-131"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span>
+<a id="__codelineno-0-132" name="__codelineno-0-132"></a>        <span class="s2">"investigate"</span><span class="p">,</span>
+<a id="__codelineno-0-133" name="__codelineno-0-133"></a>        <span class="n">build_investigate_node</span><span class="p">(</span>  <span class="c1"># type: ignore[arg-type]</span>
+<a id="__codelineno-0-134" name="__codelineno-0-134"></a>            <span class="n">explainer</span><span class="p">,</span> <span class="n">executor</span><span class="p">,</span> <span class="n">load_prompt</span><span class="p">(</span><span class="s2">"explainer_v1"</span><span class="p">)</span>
+<a id="__codelineno-0-135" name="__codelineno-0-135"></a>        <span class="p">),</span>
+<a id="__codelineno-0-136" name="__codelineno-0-136"></a>    <span class="p">)</span>
+<a id="__codelineno-0-137" name="__codelineno-0-137"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="s2">"draft_answer"</span><span class="p">,</span> <span class="n">build_draft_answer_node</span><span class="p">(</span><span class="n">answer_writer_chain</span><span class="p">))</span>  <span class="c1"># type: ignore[arg-type]</span>
+<a id="__codelineno-0-138" name="__codelineno-0-138"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span>
+<a id="__codelineno-0-139" name="__codelineno-0-139"></a>        <span class="s2">"extract_claims"</span><span class="p">,</span>
+<a id="__codelineno-0-140" name="__codelineno-0-140"></a>        <span class="n">build_extract_claims_node</span><span class="p">(</span><span class="n">claim_extractor_chain</span><span class="p">),</span>  <span class="c1"># type: ignore[arg-type]</span>
+<a id="__codelineno-0-141" name="__codelineno-0-141"></a>    <span class="p">)</span>
+<a id="__codelineno-0-142" name="__codelineno-0-142"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span>
+<a id="__codelineno-0-143" name="__codelineno-0-143"></a>        <span class="s2">"post_flight"</span><span class="p">,</span>
+<a id="__codelineno-0-144" name="__codelineno-0-144"></a>        <span class="n">build_post_flight_node</span><span class="p">(</span>  <span class="c1"># type: ignore[arg-type]</span>
+<a id="__codelineno-0-145" name="__codelineno-0-145"></a>            <span class="n">record_store</span><span class="o">.</span><span class="n">reference_range</span><span class="p">,</span>
+<a id="__codelineno-0-146" name="__codelineno-0-146"></a>            <span class="n">scope_judge_chain</span><span class="p">,</span>
+<a id="__codelineno-0-147" name="__codelineno-0-147"></a>            <span class="n">floor</span><span class="o">=</span><span class="n">settings</span><span class="o">.</span><span class="n">citation_coverage_floor</span><span class="p">,</span>
+<a id="__codelineno-0-148" name="__codelineno-0-148"></a>            <span class="n">max_evidence_passes</span><span class="o">=</span><span class="n">settings</span><span class="o">.</span><span class="n">max_evidence_passes</span><span class="p">,</span>
+<a id="__codelineno-0-149" name="__codelineno-0-149"></a>        <span class="p">),</span>
+<a id="__codelineno-0-150" name="__codelineno-0-150"></a>    <span class="p">)</span>
+<a id="__codelineno-0-151" name="__codelineno-0-151"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="s2">"publish"</span><span class="p">,</span> <span class="n">build_publish_node</span><span class="p">())</span>  <span class="c1"># type: ignore[arg-type]</span>
+<a id="__codelineno-0-152" name="__codelineno-0-152"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="s2">"enqueue_review"</span><span class="p">,</span> <span class="n">build_enqueue_review_node</span><span class="p">())</span>  <span class="c1"># type: ignore[arg-type]</span>
+<a id="__codelineno-0-153" name="__codelineno-0-153"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="s2">"template_response"</span><span class="p">,</span> <span class="n">build_template_response_node</span><span class="p">(</span><span class="n">policy_store</span><span class="p">))</span>  <span class="c1"># type: ignore[arg-type]</span>
+<a id="__codelineno-0-154" name="__codelineno-0-154"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="s2">"budget_exceeded"</span><span class="p">,</span> <span class="n">budget_exceeded_node</span><span class="p">)</span>
+<a id="__codelineno-0-155" name="__codelineno-0-155"></a>
+<a id="__codelineno-0-156" name="__codelineno-0-156"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">set_entry_point</span><span class="p">(</span><span class="s2">"intake"</span><span class="p">)</span>
+<a id="__codelineno-0-157" name="__codelineno-0-157"></a>    <span class="c1"># screen_rules and classify_intent run in parallel after intake (§5.1).</span>
+<a id="__codelineno-0-158" name="__codelineno-0-158"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="s2">"intake"</span><span class="p">,</span> <span class="s2">"screen_rules"</span><span class="p">)</span>
+<a id="__codelineno-0-159" name="__codelineno-0-159"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="s2">"intake"</span><span class="p">,</span> <span class="s2">"classify_intent"</span><span class="p">)</span>
+<a id="__codelineno-0-160" name="__codelineno-0-160"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="s2">"screen_rules"</span><span class="p">,</span> <span class="s2">"resolve_policy"</span><span class="p">)</span>
+<a id="__codelineno-0-161" name="__codelineno-0-161"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="s2">"classify_intent"</span><span class="p">,</span> <span class="s2">"resolve_policy"</span><span class="p">)</span>
+<a id="__codelineno-0-162" name="__codelineno-0-162"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_conditional_edges</span><span class="p">(</span>
+<a id="__codelineno-0-163" name="__codelineno-0-163"></a>        <span class="s2">"resolve_policy"</span><span class="p">,</span>
+<a id="__codelineno-0-164" name="__codelineno-0-164"></a>        <span class="n">route_after_resolve_policy</span><span class="p">,</span>
+<a id="__codelineno-0-165" name="__codelineno-0-165"></a>        <span class="p">{</span>
+<a id="__codelineno-0-166" name="__codelineno-0-166"></a>            <span class="s2">"emergency"</span><span class="p">:</span> <span class="s2">"template_response"</span><span class="p">,</span>
+<a id="__codelineno-0-167" name="__codelineno-0-167"></a>            <span class="s2">"crisis"</span><span class="p">:</span> <span class="s2">"template_response"</span><span class="p">,</span>
+<a id="__codelineno-0-168" name="__codelineno-0-168"></a>            <span class="s2">"out_of_scope"</span><span class="p">:</span> <span class="s2">"template_response"</span><span class="p">,</span>
+<a id="__codelineno-0-169" name="__codelineno-0-169"></a>            <span class="s2">"clinician_review"</span><span class="p">:</span> <span class="s2">"template_response"</span><span class="p">,</span>
+<a id="__codelineno-0-170" name="__codelineno-0-170"></a>            <span class="s2">"allow"</span><span class="p">:</span> <span class="s2">"investigate"</span><span class="p">,</span>
+<a id="__codelineno-0-171" name="__codelineno-0-171"></a>        <span class="p">},</span>
+<a id="__codelineno-0-172" name="__codelineno-0-172"></a>    <span class="p">)</span>
+<a id="__codelineno-0-173" name="__codelineno-0-173"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_conditional_edges</span><span class="p">(</span>
+<a id="__codelineno-0-174" name="__codelineno-0-174"></a>        <span class="s2">"investigate"</span><span class="p">,</span>
+<a id="__codelineno-0-175" name="__codelineno-0-175"></a>        <span class="n">route_after_investigate</span><span class="p">,</span>
+<a id="__codelineno-0-176" name="__codelineno-0-176"></a>        <span class="p">{</span>
+<a id="__codelineno-0-177" name="__codelineno-0-177"></a>            <span class="s2">"investigate"</span><span class="p">:</span> <span class="s2">"investigate"</span><span class="p">,</span>
+<a id="__codelineno-0-178" name="__codelineno-0-178"></a>            <span class="s2">"draft_answer"</span><span class="p">:</span> <span class="s2">"draft_answer"</span><span class="p">,</span>
+<a id="__codelineno-0-179" name="__codelineno-0-179"></a>            <span class="s2">"budget_exceeded"</span><span class="p">:</span> <span class="s2">"budget_exceeded"</span><span class="p">,</span>
+<a id="__codelineno-0-180" name="__codelineno-0-180"></a>        <span class="p">},</span>
+<a id="__codelineno-0-181" name="__codelineno-0-181"></a>    <span class="p">)</span>
+<a id="__codelineno-0-182" name="__codelineno-0-182"></a>    <span class="c1"># Post-flight: the draft is decomposed, then the three checks run and route.</span>
+<a id="__codelineno-0-183" name="__codelineno-0-183"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="s2">"draft_answer"</span><span class="p">,</span> <span class="s2">"extract_claims"</span><span class="p">)</span>
+<a id="__codelineno-0-184" name="__codelineno-0-184"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="s2">"extract_claims"</span><span class="p">,</span> <span class="s2">"post_flight"</span><span class="p">)</span>
+<a id="__codelineno-0-185" name="__codelineno-0-185"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_conditional_edges</span><span class="p">(</span>
+<a id="__codelineno-0-186" name="__codelineno-0-186"></a>        <span class="s2">"post_flight"</span><span class="p">,</span>
+<a id="__codelineno-0-187" name="__codelineno-0-187"></a>        <span class="n">route_after_post_flight</span><span class="p">,</span>
+<a id="__codelineno-0-188" name="__codelineno-0-188"></a>        <span class="p">{</span>
+<a id="__codelineno-0-189" name="__codelineno-0-189"></a>            <span class="s2">"publish"</span><span class="p">:</span> <span class="s2">"publish"</span><span class="p">,</span>
+<a id="__codelineno-0-190" name="__codelineno-0-190"></a>            <span class="s2">"escalate"</span><span class="p">:</span> <span class="s2">"template_response"</span><span class="p">,</span>
+<a id="__codelineno-0-191" name="__codelineno-0-191"></a>            <span class="s2">"review"</span><span class="p">:</span> <span class="s2">"enqueue_review"</span><span class="p">,</span>
+<a id="__codelineno-0-192" name="__codelineno-0-192"></a>            <span class="s2">"investigate"</span><span class="p">:</span> <span class="s2">"investigate"</span><span class="p">,</span>
+<a id="__codelineno-0-193" name="__codelineno-0-193"></a>        <span class="p">},</span>
+<a id="__codelineno-0-194" name="__codelineno-0-194"></a>    <span class="p">)</span>
+<a id="__codelineno-0-195" name="__codelineno-0-195"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="s2">"publish"</span><span class="p">,</span> <span class="n">END</span><span class="p">)</span>
+<a id="__codelineno-0-196" name="__codelineno-0-196"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="s2">"enqueue_review"</span><span class="p">,</span> <span class="n">END</span><span class="p">)</span>
+<a id="__codelineno-0-197" name="__codelineno-0-197"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="s2">"template_response"</span><span class="p">,</span> <span class="n">END</span><span class="p">)</span>
+<a id="__codelineno-0-198" name="__codelineno-0-198"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="s2">"budget_exceeded"</span><span class="p">,</span> <span class="n">END</span><span class="p">)</span>
+<a id="__codelineno-0-199" name="__codelineno-0-199"></a>    <span class="k">return</span> <span class="n">workflow</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">checkpointer</span><span class="o">=</span><span class="n">checkpointer</span><span class="p">)</span>
 </code></pre></div></td></tr></tbody></table></div>
             </details>
     </div>
@@ -2088,23 +2208,23 @@ offline with stubs; in production they are built from the configured models.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/navigator/graph/builder.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tbody><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-45">45</a></span>
-<span class="normal"><a href="#__codelineno-0-46">46</a></span>
-<span class="normal"><a href="#__codelineno-0-47">47</a></span>
-<span class="normal"><a href="#__codelineno-0-48">48</a></span>
-<span class="normal"><a href="#__codelineno-0-49">49</a></span>
-<span class="normal"><a href="#__codelineno-0-50">50</a></span>
-<span class="normal"><a href="#__codelineno-0-51">51</a></span>
-<span class="normal"><a href="#__codelineno-0-52">52</a></span>
-<span class="normal"><a href="#__codelineno-0-53">53</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-45" name="__codelineno-0-45"></a><span class="k">def</span><span class="w"> </span><span class="nf">build_skeleton_graph</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">SkeletonGraph</span><span class="p">:</span>
-<a id="__codelineno-0-46" name="__codelineno-0-46"></a><span class="w">    </span><span class="sd">"""Phase 0 walking skeleton: echo -&gt; done."""</span>
-<a id="__codelineno-0-47" name="__codelineno-0-47"></a>    <span class="n">workflow</span> <span class="o">=</span> <span class="n">StateGraph</span><span class="p">(</span><span class="n">SkeletonState</span><span class="p">)</span>
-<a id="__codelineno-0-48" name="__codelineno-0-48"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="s2">"echo"</span><span class="p">,</span> <span class="n">echo</span><span class="p">)</span>
-<a id="__codelineno-0-49" name="__codelineno-0-49"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="s2">"done"</span><span class="p">,</span> <span class="n">done</span><span class="p">)</span>
-<a id="__codelineno-0-50" name="__codelineno-0-50"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">set_entry_point</span><span class="p">(</span><span class="s2">"echo"</span><span class="p">)</span>
-<a id="__codelineno-0-51" name="__codelineno-0-51"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="s2">"echo"</span><span class="p">,</span> <span class="s2">"done"</span><span class="p">)</span>
-<a id="__codelineno-0-52" name="__codelineno-0-52"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="s2">"done"</span><span class="p">,</span> <span class="n">END</span><span class="p">)</span>
-<a id="__codelineno-0-53" name="__codelineno-0-53"></a>    <span class="k">return</span> <span class="n">workflow</span><span class="o">.</span><span class="n">compile</span><span class="p">()</span>
+              <div class="highlight"><table class="highlighttable"><tbody><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-62">62</a></span>
+<span class="normal"><a href="#__codelineno-0-63">63</a></span>
+<span class="normal"><a href="#__codelineno-0-64">64</a></span>
+<span class="normal"><a href="#__codelineno-0-65">65</a></span>
+<span class="normal"><a href="#__codelineno-0-66">66</a></span>
+<span class="normal"><a href="#__codelineno-0-67">67</a></span>
+<span class="normal"><a href="#__codelineno-0-68">68</a></span>
+<span class="normal"><a href="#__codelineno-0-69">69</a></span>
+<span class="normal"><a href="#__codelineno-0-70">70</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-62" name="__codelineno-0-62"></a><span class="k">def</span><span class="w"> </span><span class="nf">build_skeleton_graph</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">SkeletonGraph</span><span class="p">:</span>
+<a id="__codelineno-0-63" name="__codelineno-0-63"></a><span class="w">    </span><span class="sd">"""Phase 0 walking skeleton: echo -&gt; done."""</span>
+<a id="__codelineno-0-64" name="__codelineno-0-64"></a>    <span class="n">workflow</span> <span class="o">=</span> <span class="n">StateGraph</span><span class="p">(</span><span class="n">SkeletonState</span><span class="p">)</span>
+<a id="__codelineno-0-65" name="__codelineno-0-65"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="s2">"echo"</span><span class="p">,</span> <span class="n">echo</span><span class="p">)</span>
+<a id="__codelineno-0-66" name="__codelineno-0-66"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="s2">"done"</span><span class="p">,</span> <span class="n">done</span><span class="p">)</span>
+<a id="__codelineno-0-67" name="__codelineno-0-67"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">set_entry_point</span><span class="p">(</span><span class="s2">"echo"</span><span class="p">)</span>
+<a id="__codelineno-0-68" name="__codelineno-0-68"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="s2">"echo"</span><span class="p">,</span> <span class="s2">"done"</span><span class="p">)</span>
+<a id="__codelineno-0-69" name="__codelineno-0-69"></a>    <span class="n">workflow</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="s2">"done"</span><span class="p">,</span> <span class="n">END</span><span class="p">)</span>
+<a id="__codelineno-0-70" name="__codelineno-0-70"></a>    <span class="k">return</span> <span class="n">workflow</span><span class="o">.</span><span class="n">compile</span><span class="p">()</span>
 </code></pre></div></td></tr></tbody></table></div>
             </details>
     </div>
