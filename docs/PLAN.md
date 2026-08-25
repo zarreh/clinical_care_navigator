@@ -1300,3 +1300,31 @@ the override-trigger chart (§6.3 #4) renders byte-reproducibly and is shown on 
 [post-flight overrides](evidence/post-flight-overrides.md) evidence page. `make check`
 green (ruff, mypy --strict, 4 import-linter contracts, 146 tests) and `mkdocs build
 --strict` clean.
+
+
+**2026-08-25 — Phase 6 (API, persistence, observability) built.** The real
+navigator graph is now wired to a durable HTTP surface: `POST /conversations`
+starts a run as a background task, `GET /conversations/{id}` returns its record and
+per-node cost, `GET /conversations/{id}/events` streams it (replay then tail), and
+`GET /reviews` + `POST /reviews/{id}/decision` list and resolve held drafts. New:
+`store/run_store.py`, `store/review_queue.py`, four operational models in
+`store/models.py`, `graph/cost_tracking.py`, `guardrails/redaction.py`,
+`api/{run_executor,schemas}.py`, `api/routes/reviews.py`, and the conversation
+routes. `enqueue_review` now consumes the `interrupt()` return value so a reviewer
+decision drives the published answer.
+
+| Change | Origin |
+|---|---|
+| The checkpointer is an **async** SQLite saver opened once in a FastAPI lifespan; the real graph is built lazily against it on the first request, so import and test runs never construct the models. The executor streams with `astream_events`, which a sync `SqliteSaver` cannot serve — the async saver is the correct match, not an over-choice (§5.8, §5.10) | Implementation constraint, resolved |
+| A suspended review **resumes the same run from its checkpoint**: `POST /reviews/{id}/decision` re-enters `enqueue_review` on the run's `thread_id` via `Command(resume=...)` — approve publishes the judged draft unchanged, edit publishes an edited body, decline leaves it held. Proven end-to-end through the API (§5.10) | Exit criterion, verified by test |
+| **Redaction guards the log/trace boundary, not the patient's answer.** The structlog processor scrubs the store's own patient identifiers from every emitted line; the falsifiable test asserts against those real values and a control proves the same call leaks them without the redactor. Conversation events are deliberately *not* redacted — a person may read their own record (§5.7) | Exit criterion, verified by test |
+| Per-node **cost accounting** is one callback attached to the whole invocation; LangGraph's `langgraph_node` metadata attributes each LLM call to its node, and an unknown model prices to zero rather than inventing a figure (§5.5) | Design requirement, verified by test |
+| **Rate limits are demonstrably enforced**: the configured ceiling of successful requests, then a `429`, proven against the streaming endpoint so the real graph is not spun to test the limiter (§5.6) | Exit criterion, verified by test |
+| A per-request **correlation id** is bound into the structlog context by middleware and echoed back, and the background executor binds the same id for the run — every line for one request or run is greppable by one id (§5.8) | Design requirement |
+| The Phase 0 **walking-skeleton** stream and its tests are kept intact alongside the real endpoints, as the streaming proof they were built to be (§7) | Design requirement, verified by test |
+
+Exit criteria verified: a suspended review resumes from a checkpoint after a
+reviewer decision; the redaction test passes against the store's own values; and
+rate limits are demonstrably enforced. `make check` green (ruff, mypy --strict over
+141 source files, 4 import-linter contracts, 169 tests) and `mkdocs build --strict`
+clean. Added `langgraph-checkpoint-sqlite` (with `aiosqlite`) dependency.

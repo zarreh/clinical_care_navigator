@@ -22,6 +22,11 @@ class Settings(BaseSettings):
     education_db_path: str = "data/education.db"
     policy_db_path: str = "data/policy.db"
     run_store_path: str = "data/runs.db"
+    checkpoint_db_path: str = "data/checkpoints.db"
+    # Reviews share the run-store database; the queue owns its own table.
+    # A blank demo patient means "resolve the first patient in the record store"
+    # so the patient-facing API has a sane default without hard-coding an id.
+    demo_patient_id: str = ""
 
     # docs/PLAN.md §5.9 — moves the inform/recommend boundary only, never the
     # escalation boundary.

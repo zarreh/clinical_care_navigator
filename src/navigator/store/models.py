@@ -224,3 +224,83 @@ class PolicyRule:
     source_quote: str | None
     version: int
     enabled: bool
+
+
+# --- Operational records (docs/PLAN.md §7 Phase 6) --------------------------
+#
+# Unlike the read models above, these describe *operational* state written at
+# run time by the RunStore, ReviewQueue and the cost-accounting callback — not
+# build-time clinical data. They are frozen dataclasses for the same reason:
+# small internal records that never leave the process as a public contract.
+
+
+@dataclass(frozen=True)
+class CostEntry:
+    """One attributed LLM call within a graph run (docs/PLAN.md §5.5).
+
+    The node is resolved from LangGraph's ``langgraph_node`` run metadata, so a
+    single callback attached to the whole invocation attributes every call back
+    to the node that made it — no plumbing through node code.
+    """
+
+    node: str
+    model: str
+    prompt_tokens: int
+    completion_tokens: int
+    cost_usd: float
+
+
+@dataclass(frozen=True)
+class RunRecord:
+    """The operational record of one conversation run.
+
+    ``status`` is one of ``running``, ``answered``, ``pending_review``,
+    ``templated`` or ``failed``. ``answer_kind``/``answer_json`` carry the final
+    ``PatientAnswer`` once the run reaches a terminal state; a run held for a
+    clinician is ``pending_review`` with the drafted (not yet published) body.
+    """
+
+    id: str
+    question: str
+    patient_id: str
+    status: str
+    created_at: str
+    updated_at: str
+    answer_kind: str | None
+    answer_json: str | None
+    error: str | None
+
+
+@dataclass(frozen=True)
+class RunEvent:
+    """One node boundary persisted during a run, so the stream replays whether a
+    client watches live or reconnects long after the run finished."""
+
+    run_id: str
+    sequence: int
+    node: str
+    payload_json: str
+    created_at: str
+
+
+@dataclass(frozen=True)
+class ReviewItem:
+    """One draft held for a clinician (docs/PLAN.md §5.10).
+
+    ``thread_id`` is the LangGraph checkpoint thread the run suspended on, so a
+    reviewer decision resumes the *same* interrupted run from its checkpoint
+    rather than starting a new one. ``status`` is ``pending`` until a decision
+    resolves it to ``approved``, ``edited`` or ``declined``.
+    """
+
+    id: str
+    run_id: str
+    thread_id: str
+    patient_id: str
+    reason: str
+    override_action: str | None
+    body: str
+    payload_json: str
+    status: str
+    created_at: str
+    updated_at: str
