@@ -1215,3 +1215,19 @@ answered against the primary sources, not a summary:
 | RxNav requires a **verbatim** attribution statement and forbids use of the NLM name or logo in the application. Both recorded in `NOTICE.md` | Implementation finding |
 | Live probes confirm the declared-gap path arrives free: an unknown LOINC code returns zero entries from Connect rather than a wrong page | Implementation finding |
 
+**2026-08-25 — Phase 2 (tools and scoping) built.** Eleven tools, `tools/registry.py`
+and `tools/scoping.py` implementing the fixes named in §3.3–§3.6:
+
+| Change | Origin |
+|---|---|
+| `ScopedToolExecutor` enforces the allowlist, the patient-id overwrite and the row cap **and** records every enforcement as a typed `SecurityEvent` — a model that just attempted a cross-patient read now leaves a different trail than one that did not (§3.4) | Design requirement, verified by test |
+| A non-`allow` gate decision hands the executor an `education_only_scope()` from which every patient tool is absent, so an out-of-scope call is refused *at the executor* rather than filtered after the fact (§3.3) | Design requirement, verified by test |
+| Every tool returns a typed Pydantic result, not a JSON string the model must re-parse (§3.6); every executed call yields an `EvidenceRecord` addressable by its `tool_call_id` | Design requirement, verified by test |
+| `LiteracyLevel` moved to `schemas/common.py` so the store's row models and the tool-result schemas can both name it without breaking the `api → graph → guardrails → tools → retrieval → store → schemas` layering contract | Implementation finding |
+
+Exit criteria verified: 11 tools run with no LLM and no network; a cross-patient
+argument is overwritten and recorded (canonical case 6); an out-of-scope call
+under a restricted `ToolScope` is refused at the executor; every result is
+`tool_call_id`-addressable. `make check` green (ruff, mypy --strict, 4
+import-linter contracts, 66 tests) and `mkdocs build --strict` clean.
+

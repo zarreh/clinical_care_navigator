@@ -8,9 +8,8 @@ API or tool boundaries. Tool returns are Pydantic and live in `schemas/`
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
 
-LiteracyLevel = Literal["basic", "intermediate", "proficient"]
+from navigator.schemas.common import LiteracyLevel
 
 
 @dataclass(frozen=True)

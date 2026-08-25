@@ -18,12 +18,12 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
+from navigator.schemas.common import LiteracyLevel
 from navigator.store.models import (
     Allergy,
     ClinicalNote,
     Condition,
     Encounter,
-    LiteracyLevel,
     Medication,
     Observation,
     Patient,
