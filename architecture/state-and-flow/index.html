@@ -979,6 +979,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#navigator.graph.state.NavigatorState" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        NavigatorState
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#navigator.graph.state.SkeletonState" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1411,6 +1422,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#navigator.graph.state.NavigatorState" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        NavigatorState
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#navigator.graph.state.SkeletonState" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1512,9 +1534,13 @@ metadata under their own function name.</p>
     <div class="doc doc-contents first">
 
         <p>Graph state.</p>
-<p>Phase 0 ships only <code>SkeletonState</code>, which exists to prove the streaming path
-end to end. <code>NavigatorState</code> and its narrow per-node projections (docs/PLAN.md
-§5.4) arrive in Phase 3.</p>
+<p><code>SkeletonState</code> is the Phase 0 walking skeleton, kept so the streaming path
+stays proven end to end. <code>NavigatorState</code> is the real state (docs/PLAN.md §5.1),
+carrying the pre-flight decision, the scoped-executor output, and the draft.</p>
+<p>The narrow per-node projections (§5.4) are enforced by what each node reads,
+not by separate TypedDicts: <code>classify_intent</code> reads only the question and the
+patient's literacy level — never clinical content — which is a deliberate,
+defensible privacy property stated in the docs.</p>
 
 
 
@@ -1539,6 +1565,123 @@ end to end. <code>NavigatorState</code> and its narrow per-node projections (doc
 
 
 
+<h2 id="navigator.graph.state.NavigatorState" class="doc doc-heading">
+            <code>NavigatorState</code>
+
+
+<a href="#navigator.graph.state.NavigatorState" class="headerlink" title="Permanent link">¶</a></h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="typing.TypedDict">TypedDict</span></code></p>
+
+
+
+        <p>The real graph state (§5.1).</p>
+<p><code>total=False</code> because the state accumulates: intake sets the patient header,
+the pre-flight gate sets the decision, investigate appends evidence, and
+draft_answer sets the draft. Keys are present only after the node that owns
+them has run.</p>
+
+
+
+
+
+
+
+
+              <details class="mkdocstrings-source">
+                <summary>Source code in <code>src/navigator/graph/state.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tbody><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-31">31</a></span>
+<span class="normal"><a href="#__codelineno-0-32">32</a></span>
+<span class="normal"><a href="#__codelineno-0-33">33</a></span>
+<span class="normal"><a href="#__codelineno-0-34">34</a></span>
+<span class="normal"><a href="#__codelineno-0-35">35</a></span>
+<span class="normal"><a href="#__codelineno-0-36">36</a></span>
+<span class="normal"><a href="#__codelineno-0-37">37</a></span>
+<span class="normal"><a href="#__codelineno-0-38">38</a></span>
+<span class="normal"><a href="#__codelineno-0-39">39</a></span>
+<span class="normal"><a href="#__codelineno-0-40">40</a></span>
+<span class="normal"><a href="#__codelineno-0-41">41</a></span>
+<span class="normal"><a href="#__codelineno-0-42">42</a></span>
+<span class="normal"><a href="#__codelineno-0-43">43</a></span>
+<span class="normal"><a href="#__codelineno-0-44">44</a></span>
+<span class="normal"><a href="#__codelineno-0-45">45</a></span>
+<span class="normal"><a href="#__codelineno-0-46">46</a></span>
+<span class="normal"><a href="#__codelineno-0-47">47</a></span>
+<span class="normal"><a href="#__codelineno-0-48">48</a></span>
+<span class="normal"><a href="#__codelineno-0-49">49</a></span>
+<span class="normal"><a href="#__codelineno-0-50">50</a></span>
+<span class="normal"><a href="#__codelineno-0-51">51</a></span>
+<span class="normal"><a href="#__codelineno-0-52">52</a></span>
+<span class="normal"><a href="#__codelineno-0-53">53</a></span>
+<span class="normal"><a href="#__codelineno-0-54">54</a></span>
+<span class="normal"><a href="#__codelineno-0-55">55</a></span>
+<span class="normal"><a href="#__codelineno-0-56">56</a></span>
+<span class="normal"><a href="#__codelineno-0-57">57</a></span>
+<span class="normal"><a href="#__codelineno-0-58">58</a></span>
+<span class="normal"><a href="#__codelineno-0-59">59</a></span>
+<span class="normal"><a href="#__codelineno-0-60">60</a></span>
+<span class="normal"><a href="#__codelineno-0-61">61</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-31" name="__codelineno-0-31"></a><span class="k">class</span><span class="w"> </span><span class="nc">NavigatorState</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">,</span> <span class="n">total</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<a id="__codelineno-0-32" name="__codelineno-0-32"></a><span class="w">    </span><span class="sd">"""The real graph state (§5.1).</span>
+<a id="__codelineno-0-33" name="__codelineno-0-33"></a>
+<a id="__codelineno-0-34" name="__codelineno-0-34"></a><span class="sd">    `total=False` because the state accumulates: intake sets the patient header,</span>
+<a id="__codelineno-0-35" name="__codelineno-0-35"></a><span class="sd">    the pre-flight gate sets the decision, investigate appends evidence, and</span>
+<a id="__codelineno-0-36" name="__codelineno-0-36"></a><span class="sd">    draft_answer sets the draft. Keys are present only after the node that owns</span>
+<a id="__codelineno-0-37" name="__codelineno-0-37"></a><span class="sd">    them has run.</span>
+<a id="__codelineno-0-38" name="__codelineno-0-38"></a><span class="sd">    """</span>
+<a id="__codelineno-0-39" name="__codelineno-0-39"></a>
+<a id="__codelineno-0-40" name="__codelineno-0-40"></a>    <span class="c1"># intake</span>
+<a id="__codelineno-0-41" name="__codelineno-0-41"></a>    <span class="n">question</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-0-42" name="__codelineno-0-42"></a>    <span class="n">patient_id</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-0-43" name="__codelineno-0-43"></a>    <span class="n">run_id</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-0-44" name="__codelineno-0-44"></a>    <span class="n">literacy_level</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-0-45" name="__codelineno-0-45"></a>    <span class="n">language</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-0-46" name="__codelineno-0-46"></a>    <span class="n">autonomy_level</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-0-47" name="__codelineno-0-47"></a>    <span class="n">started_at</span><span class="p">:</span> <span class="nb">float</span>
+<a id="__codelineno-0-48" name="__codelineno-0-48"></a>
+<a id="__codelineno-0-49" name="__codelineno-0-49"></a>    <span class="c1"># pre-flight gate</span>
+<a id="__codelineno-0-50" name="__codelineno-0-50"></a>    <span class="n">rule_matches</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">RuleMatch</span><span class="p">]</span>
+<a id="__codelineno-0-51" name="__codelineno-0-51"></a>    <span class="n">intent</span><span class="p">:</span> <span class="n">IntentAssessment</span>
+<a id="__codelineno-0-52" name="__codelineno-0-52"></a>    <span class="n">policy_decision</span><span class="p">:</span> <span class="n">PolicyDecision</span>
+<a id="__codelineno-0-53" name="__codelineno-0-53"></a>
+<a id="__codelineno-0-54" name="__codelineno-0-54"></a>    <span class="c1"># investigate (the scoped executor's output)</span>
+<a id="__codelineno-0-55" name="__codelineno-0-55"></a>    <span class="n">messages</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">BaseMessage</span><span class="p">]</span>
+<a id="__codelineno-0-56" name="__codelineno-0-56"></a>    <span class="n">evidence</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">EvidenceRecord</span><span class="p">]</span>
+<a id="__codelineno-0-57" name="__codelineno-0-57"></a>    <span class="n">security_events</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">SecurityEvent</span><span class="p">]</span>
+<a id="__codelineno-0-58" name="__codelineno-0-58"></a>    <span class="n">tool_call_count</span><span class="p">:</span> <span class="nb">int</span>
+<a id="__codelineno-0-59" name="__codelineno-0-59"></a>
+<a id="__codelineno-0-60" name="__codelineno-0-60"></a>    <span class="c1"># draft</span>
+<a id="__codelineno-0-61" name="__codelineno-0-61"></a>    <span class="n">draft</span><span class="p">:</span> <span class="n">PatientAnswer</span>
+</code></pre></div></td></tr></tbody></table></div>
+              </details>
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
 <h2 id="navigator.graph.state.SkeletonState" class="doc doc-heading">
             <code>SkeletonState</code>
 
@@ -1552,7 +1695,7 @@ end to end. <code>NavigatorState</code> and its narrow per-node projections (doc
 
 
 
-        <p>Walking-skeleton state — replaced by <code>NavigatorState</code> in Phase 3.</p>
+        <p>Walking-skeleton state — replaced by <code>NavigatorState</code> in the real graph.</p>
 
 
 
@@ -1563,15 +1706,15 @@ end to end. <code>NavigatorState</code> and its narrow per-node projections (doc
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>src/navigator/graph/state.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tbody><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-11">11</a></span>
-<span class="normal"><a href="#__codelineno-0-12">12</a></span>
-<span class="normal"><a href="#__codelineno-0-13">13</a></span>
-<span class="normal"><a href="#__codelineno-0-14">14</a></span>
-<span class="normal"><a href="#__codelineno-0-15">15</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-11" name="__codelineno-0-11"></a><span class="k">class</span><span class="w"> </span><span class="nc">SkeletonState</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12"></a><span class="w">    </span><span class="sd">"""Walking-skeleton state — replaced by `NavigatorState` in Phase 3."""</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13"></a>
-<a id="__codelineno-0-14" name="__codelineno-0-14"></a>    <span class="n">question</span><span class="p">:</span> <span class="nb">str</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15"></a>    <span class="n">steps</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+                <div class="highlight"><table class="highlighttable"><tbody><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-24">24</a></span>
+<span class="normal"><a href="#__codelineno-0-25">25</a></span>
+<span class="normal"><a href="#__codelineno-0-26">26</a></span>
+<span class="normal"><a href="#__codelineno-0-27">27</a></span>
+<span class="normal"><a href="#__codelineno-0-28">28</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-24" name="__codelineno-0-24"></a><span class="k">class</span><span class="w"> </span><span class="nc">SkeletonState</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<a id="__codelineno-0-25" name="__codelineno-0-25"></a><span class="w">    </span><span class="sd">"""Walking-skeleton state — replaced by `NavigatorState` in the real graph."""</span>
+<a id="__codelineno-0-26" name="__codelineno-0-26"></a>
+<a id="__codelineno-0-27" name="__codelineno-0-27"></a>    <span class="n">question</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-0-28" name="__codelineno-0-28"></a>    <span class="n">steps</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
 </code></pre></div></td></tr></tbody></table></div>
               </details>
 
