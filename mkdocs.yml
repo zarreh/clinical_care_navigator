@@ -70,6 +70,7 @@ nav:
       - A real question: how-it-works/a-real-question.md
       - Autonomy: how-it-works/autonomy.md
       - What it won't do: how-it-works/what-it-wont-do.md
+      - Watch it work: how-it-works/watch-it-work.md
   - Architecture:
       - Overview: architecture/overview.md
       - Policy engine: architecture/policy-engine.md

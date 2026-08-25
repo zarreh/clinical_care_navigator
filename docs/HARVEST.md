@@ -38,4 +38,12 @@ extraction candidate for X3 `@zarreh/agent-ui`.
 
 | # | Component | Notes |
 |---|---|---|
-| — | *pending Phase 7* | |
+| F1 | `PrototypeBanner` | Synthetic-data / not-a-medical-device banner rendered in the root layout on every page. Second occurrence (A2 had the same shape) — **essential**, promote to the X3 `@zarreh/agent-ui` shell |
+| F2 | `RunConsole` | Orchestrates create → SSE stream → fetch, with loading/streaming/success/empty/error phases. Same state machine as A2's `RunConsole`; the domain payload differs — **essential convention**, shareable with a typed answer generic |
+| F3 | `TraceTimeline` | Node-by-node step list keyed on `node filename == node name == span name` (HARVEST #9). Labels are domain-specific; the component is not — **essential** |
+| F4 | `EvidencePanel` | Renders the `PatientAnswer`: disposition badge (pending ≠ approved), reading level, autonomy, citations as clickable links, clinical claims. Domain-specific rendering; the panel shell is reusable — incidental |
+| F5 | `GuardrailStrip` | States which post-flight outcome fired (published / escalated / templated) and the claim coverage that drove it. A3 analogue of A2's `ValidatorStrip` — **essential**, second occurrence of the guardrail-status strip |
+| F6 | `CostMeter` | Per-node cost table + total; unknown model prices to zero. Copied near-verbatim from A2 — **essential**, promote to X3 |
+| F7 | `HITLDrawer` | Reviewer queue: list held drafts, approve/edit/decline, refresh. New in A3 (A2 had no HITL surface) — extraction candidate once a second occurrence appears |
+| F8 | `lib/api.ts` + `lib/schemas.ts` | Typed API client over `openapi-typescript` types + Zod validation of the opaque answer payload at the SSE/HTTP boundary. Same pattern as A2 — **essential convention** |
+| F9 | Playwright smoke + screenshot reuse | One set of network mocks drives both the smoke test and `make docs-screenshots`, so screenshots cannot drift from tested behaviour. Copied from A2 — **essential convention** |

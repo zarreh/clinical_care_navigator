@@ -1328,3 +1328,33 @@ reviewer decision; the redaction test passes against the store's own values; and
 rate limits are demonstrably enforced. `make check` green (ruff, mypy --strict over
 141 source files, 4 import-linter contracts, 169 tests) and `mkdocs build --strict`
 clean. Added `langgraph-checkpoint-sqlite` (with `aiosqlite`) dependency.
+
+
+**2026-08-25 — Phase 7 (frontend) built.** A small Next.js app puts the streamed
+guardrail sandwich on screen. **First paint first**: the example question runs on
+load and the visitor watches the answer stream node-by-node, then sees the
+published answer — before typing anything. A single click runs **case 4** (a
+benign question over a critical value) and the trace ends at *Holding the answer
+for clinician review* instead of *Publishing*. A second route is the clinician
+review queue. New under `frontend/`: `RunConsole`, `TraceTimeline`,
+`EvidencePanel`, `GuardrailStrip`, `CostMeter`, `HITLDrawer`, `PrototypeBanner`,
+a typed `lib/api.ts` + Zod `lib/schemas.ts`, and Playwright specs. Types come
+from the API's own OpenAPI document via `openapi-typescript`.
+
+| Change | Origin |
+|---|---|
+| **Vocabulary discipline reaches the pixel** (§3.7): a result is rendered as "outside the reference range your lab reported (`x`–`y`)", never "abnormal"; a held answer is labelled **pending clinician review**, explicitly "not been approved", never as approved; the reading-level target is shown so the assistant adapts *with* the reader | Design requirement, verified by test |
+| A citation is a **clickable link to the real MedlinePlus page** — a citation nobody can open is not a citation (§6.1). The smoke test asserts the link's `href`, not just its text | Exit criterion, verified by test |
+| **Case 4 is one click, no typing** (§7 exit): the escalation scenario re-keys the console, and the test asserts the trace reaches `enqueue_review`, the pending badge shows, and the guardrail strip reads *escalated* | Exit criterion, verified by test |
+| The opaque `PatientAnswer` payload (returned as JSON, absent from the OpenAPI document) is **validated at the boundary with Zod**, not merely cast — the frontend has its own runtime source of truth for what is inside it | Design requirement |
+| Every component stays **local** and is logged in `HARVEST.md` as an X3 `@zarreh/agent-ui` extraction candidate (§0.3); `PrototypeBanner`, `CostMeter`, the guardrail strip and the SSE/screenshot-reuse pattern are second occurrences and marked essential | Design requirement |
+| The **synthetic-data banner is on every page** — it renders in the root layout above all routes | Design requirement, verified by screenshot |
+| Loading, success, empty, and error states are each **tested** with the backend fully mocked at the network layer, so no live LLM or Python process is needed to run the smoke test | Design requirement, verified by test |
+| Docs screenshots are captured by the **same Playwright mocks** as the smoke test (`make docs-screenshots`), so a screenshot can never silently drift from tested behaviour | Design requirement |
+
+Exit criteria verified: a visitor sees a full cited answer, can open a citation
+(asserted `href`), and can trigger case 4 and see the escalation — without typing
+anything. Frontend `npm run build` and `tsc --noEmit` clean; 8 Playwright specs
+pass; the Python `make check` stays green (ruff, mypy --strict, 4 import-linter
+contracts, 169 tests) and `mkdocs build --strict` is clean with the new
+[watch it work](how-it-works/watch-it-work.md) walkthrough.
