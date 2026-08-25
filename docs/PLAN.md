@@ -1272,3 +1272,31 @@ terminates a deliberately runaway run; and an emergency question completes with
 import-linter contracts, 118 tests) and `mkdocs build --strict` clean. Added
 `langchain-qdrant`, `qdrant-client` and `sentence-transformers` dependencies.
 
+
+**2026-08-25 — Phase 5 (post-flight, the centrepiece) built.** After the draft is
+written, three checks run and can escalate but never relax the pre-flight decision:
+`extract_claims` → `post_flight` → `{publish | template_response | enqueue_review |
+investigate}`. New: `schemas/postflight.py`, `guardrails/critical_values.py`,
+`guardrails/citation_check.py`, `chains/{claim_extractor,scope_judge}.py`,
+`nodes/{extract_claims,post_flight,publish,enqueue_review}.py`, two prompt files, and
+the monotonic `more_restrictive` helper on the shared `ACTION_SEVERITY` table
+(`schemas/preflight.py`). The builder gained a `checkpointer` so `enqueue_review` can
+genuinely suspend.
+
+| Change | Origin |
+|---|---|
+| Post-flight is **monotonic**: `override_action = more_restrictive(pre_action, implied)` over a single severity table, so a check can only raise the floor. The property is proven directly — a pre-flight `clinician_review` combined with an `allow`-level override stays `clinician_review` (§5.3, §5.4) | Design requirement, verified by test |
+| The two cheap checks run **before** the LLM one, in cost order: `critical_value` (pure code, cites the range row) then `citation_coverage` (pure code), and only then the `scope_judge` chain. The critical-value check fires on the value itself regardless of a perfectly clean draft — canonical case 4 escalates on a benign question (§5.3) | Design requirement, verified by test |
+| An uncited clinical claim **loops back exactly once** with specific per-claim feedback appended as a `HumanMessage`; if still uncited after the retry it is held for review, never published on faith (§5.3) | Design requirement, verified by test |
+| The scope judge blocks a diagnosing or medication-changing draft and **cites the offending span**; `diagnoses`/`changes_medication` escalate to `out_of_scope`, `directs_clinical_action`/`contradicts_record` route to `clinician_review` (§5.3) | Design requirement, verified by test |
+| `publish` is a **byte-identical** copy of the judged draft (`model_copy` with only `disposition`/`pending_review` changed) — nothing is silently reworded after the checks that approved it (§5.3) | Design requirement, verified by test |
+| `enqueue_review` calls LangGraph `interrupt()` and therefore requires a checkpointer to suspend; the full-graph test drives it with a `MemorySaver` and asserts the run halts (`__interrupt__` present, `published` absent) with the review decision recorded in the checkpoint (§5.10) | Design requirement, verified by test |
+
+Exit criteria verified: case 4 escalates on a benign question over a critical value;
+an uncited draft loops back once and then gains a citation and publishes; the scope
+judge blocks a diagnosing draft with a span; the published answer is byte-identical to
+the judged draft; post-flight escalates but never relaxes a pre-flight restriction; and
+the override-trigger chart (§6.3 #4) renders byte-reproducibly and is shown on the new
+[post-flight overrides](evidence/post-flight-overrides.md) evidence page. `make check`
+green (ruff, mypy --strict, 4 import-linter contracts, 146 tests) and `mkdocs build
+--strict` clean.

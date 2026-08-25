@@ -51,3 +51,20 @@ def test_investigate_drafts_when_no_tool_calls() -> None:
         "started_at": time.time(),
     }
     assert route_after_investigate(state) == "draft_answer"  # type: ignore[arg-type]
+
+
+def test_post_flight_routes_each_disposition() -> None:
+    from navigator.graph.edges import route_after_post_flight
+    from navigator.schemas.postflight import PostFlightResult
+
+    def route(disposition: str) -> str:
+        state: NavigatorState = {
+            "post_flight": PostFlightResult(disposition=disposition)  # type: ignore[arg-type]
+        }
+        return route_after_post_flight(state)
+
+    assert route("publish") == "publish"
+    assert route("escalate") == "escalate"
+    assert route("review") == "review"
+    # A citation loop routes back into the investigate loop to re-gather evidence.
+    assert route("loop") == "investigate"

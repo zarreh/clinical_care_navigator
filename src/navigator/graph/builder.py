@@ -5,7 +5,9 @@ path stays proven. `build_navigator_graph` wires the real graph (§5.1): intake
 loads the patient header; the pre-flight gate (screen_rules ∥ classify_intent →
 resolve_policy) routes to a templated branch or into the investigate loop; the
 investigate loop drives the scoped executor; draft_answer produces the cited
-PatientAnswer. Post-flight arrives in Phase 5.
+PatientAnswer; post-flight (extract_claims -> post_flight) runs the three
+safety checks and routes to publish, a templated escalation, the review
+queue, or back into the loop for a missing citation (§5.3).
 
 Node filename == registered node name == trace span name (§9.3 rule 3).
 """
@@ -14,23 +16,38 @@ from pathlib import Path
 
 from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
+from langgraph.types import Checkpointer
 
 from navigator.graph.agents.explainer import Explainer, build_explainer
 from navigator.graph.chains.answer_writer import AnswerWriterChain, build_answer_writer_chain
+from navigator.graph.chains.claim_extractor import build_claim_extractor_chain
 from navigator.graph.chains.intent_classifier import build_intent_classifier_chain
-from navigator.graph.edges import route_after_investigate, route_after_resolve_policy
+from navigator.graph.chains.scope_judge import build_scope_judge_chain
+from navigator.graph.edges import (
+    route_after_investigate,
+    route_after_post_flight,
+    route_after_resolve_policy,
+)
 from navigator.graph.nodes.budget_exceeded import budget_exceeded_node
 from navigator.graph.nodes.classify_intent import build_classify_intent_node
 from navigator.graph.nodes.done import done
 from navigator.graph.nodes.draft_answer import build_draft_answer_node
 from navigator.graph.nodes.echo import echo
+from navigator.graph.nodes.enqueue_review import build_enqueue_review_node
+from navigator.graph.nodes.extract_claims import build_extract_claims_node
 from navigator.graph.nodes.intake import build_intake_node
 from navigator.graph.nodes.investigate import build_investigate_node
+from navigator.graph.nodes.post_flight import build_post_flight_node
+from navigator.graph.nodes.publish import build_publish_node
 from navigator.graph.nodes.resolve_policy_node import build_resolve_policy_node
 from navigator.graph.nodes.screen_rules import build_screen_rules_node
 from navigator.graph.nodes.template_response import build_template_response_node
 from navigator.graph.policies import build_fast_model, build_reasoning_model
-from navigator.graph.protocols import IntentClassifierChain
+from navigator.graph.protocols import (
+    ClaimExtractorChain,
+    IntentClassifierChain,
+    ScopeJudgeChain,
+)
 from navigator.graph.state import NavigatorState, SkeletonState
 from navigator.guardrails.rule_engine import RuleEngine
 from navigator.prompts.loader import load_prompt
@@ -59,6 +76,9 @@ def build_navigator_graph(
     intent_chain: IntentClassifierChain | None = None,
     answer_writer_chain: AnswerWriterChain | None = None,
     explainer: Explainer | None = None,
+    claim_extractor_chain: ClaimExtractorChain | None = None,
+    scope_judge_chain: ScopeJudgeChain | None = None,
+    checkpointer: Checkpointer = None,
 ) -> NavigatorGraph:
     """The only function that wires the navigator graph's nodes and edges.
 
@@ -72,7 +92,13 @@ def build_navigator_graph(
     executor = ScopedToolExecutor(registry)
     rule_engine = RuleEngine(policy_store.enabled_rules())
 
-    if intent_chain is None or answer_writer_chain is None or explainer is None:
+    if (
+        intent_chain is None
+        or answer_writer_chain is None
+        or explainer is None
+        or claim_extractor_chain is None
+        or scope_judge_chain is None
+    ):
         fast_model = build_fast_model(settings)
         reasoning_model = build_reasoning_model(settings)
         if intent_chain is None:
@@ -84,6 +110,12 @@ def build_navigator_graph(
             # enforces the per-run ToolScope on every call, so the model can
             # propose anything and only in-scope calls execute (§3.3, §3.4).
             explainer = build_explainer(fast_model, list(registry.tools.values()))
+        if claim_extractor_chain is None:
+            # Claim extraction is a mechanical decomposition -> fast model.
+            claim_extractor_chain = build_claim_extractor_chain(fast_model)
+        if scope_judge_chain is None:
+            # The scope judge is the one graded call -> reasoning model.
+            scope_judge_chain = build_scope_judge_chain(reasoning_model)
 
     workflow = StateGraph(NavigatorState)
     # mypy cannot resolve add_node's overloads against a factory-returned
@@ -103,6 +135,21 @@ def build_navigator_graph(
         ),
     )
     workflow.add_node("draft_answer", build_draft_answer_node(answer_writer_chain))  # type: ignore[arg-type]
+    workflow.add_node(
+        "extract_claims",
+        build_extract_claims_node(claim_extractor_chain),  # type: ignore[arg-type]
+    )
+    workflow.add_node(
+        "post_flight",
+        build_post_flight_node(  # type: ignore[arg-type]
+            record_store.reference_range,
+            scope_judge_chain,
+            floor=settings.citation_coverage_floor,
+            max_evidence_passes=settings.max_evidence_passes,
+        ),
+    )
+    workflow.add_node("publish", build_publish_node())  # type: ignore[arg-type]
+    workflow.add_node("enqueue_review", build_enqueue_review_node())  # type: ignore[arg-type]
     workflow.add_node("template_response", build_template_response_node(policy_store))  # type: ignore[arg-type]
     workflow.add_node("budget_exceeded", budget_exceeded_node)
 
@@ -132,7 +179,21 @@ def build_navigator_graph(
             "budget_exceeded": "budget_exceeded",
         },
     )
-    workflow.add_edge("draft_answer", END)
+    # Post-flight: the draft is decomposed, then the three checks run and route.
+    workflow.add_edge("draft_answer", "extract_claims")
+    workflow.add_edge("extract_claims", "post_flight")
+    workflow.add_conditional_edges(
+        "post_flight",
+        route_after_post_flight,
+        {
+            "publish": "publish",
+            "escalate": "template_response",
+            "review": "enqueue_review",
+            "investigate": "investigate",
+        },
+    )
+    workflow.add_edge("publish", END)
+    workflow.add_edge("enqueue_review", END)
     workflow.add_edge("template_response", END)
     workflow.add_edge("budget_exceeded", END)
-    return workflow.compile()
+    return workflow.compile(checkpointer=checkpointer)

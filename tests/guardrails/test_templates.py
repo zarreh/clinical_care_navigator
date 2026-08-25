@@ -65,3 +65,45 @@ def test_render_template_dispatches_all_four() -> None:
     assert "988" in render_template("crisis", rule)
     assert "outside what this assistant" in render_template("out_of_scope", None)
     assert "review" in render_template("clinician_review", None).lower()
+
+
+# --- post-flight templates (§5.3) --------------------------------------------
+
+
+def test_critical_value_template_directs_to_care_and_cites_threshold() -> None:
+    from navigator.guardrails.templates import critical_value_template
+    from navigator.schemas.postflight import CriticalFinding
+
+    finding = CriticalFinding(
+        loinc_code="2823-3",
+        analyte="Potassium",
+        value=6.9,
+        unit="mmol/L",
+        band="critical_high",
+        threshold=6.0,
+        action="direct_to_emergency_care",
+        source_name="StatPearls — Hyperkalemia",
+        source_url="https://www.ncbi.nlm.nih.gov/books/NBK470284/",
+        source_quote="Clinical manifestations generally appear at levels above 6.0 mEq/L.",
+    )
+    text = critical_value_template(finding)
+    assert "Potassium" in text
+    assert "6.9" in text
+    assert "6.0" in text
+    # §3.7: it directs to care, it does not diagnose.
+    assert "emergency care" in text
+    # The published threshold is quoted so the escalation shows its basis.
+    assert "NBK470284" in text
+
+
+def test_scope_violation_template_names_the_boundary_and_span() -> None:
+    from navigator.guardrails.templates import scope_violation_template
+    from navigator.schemas.postflight import ScopeJudgement
+
+    judgement = ScopeJudgement(diagnoses=True, spans={"diagnoses": "you have diabetes"})
+    text = scope_violation_template(judgement)
+    assert "diagnos" in text.lower()
+    assert "you have diabetes" in text
+    # A route to the right owner, never an obstruction.
+    assert "care team" in text
+    assert "refuse" not in text.lower()

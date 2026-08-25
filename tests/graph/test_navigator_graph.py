@@ -17,6 +17,7 @@ from langchain_core.messages.tool import ToolCall
 
 from navigator.graph.builder import build_navigator_graph
 from navigator.schemas.answer import Citation, Claim, PatientAnswer
+from navigator.schemas.postflight import ExtractedClaims, ScopeJudgement
 from navigator.schemas.preflight import IntentAssessment
 from navigator.settings import Settings
 from tests.fixtures import build_fixture_stores
@@ -71,6 +72,29 @@ class _StubAnswerWriter:
         )
 
 
+class _StubClaimExtractor:
+    """Re-derives the draft's single clinical claim, citing the recorded call."""
+
+    def invoke(self, input: dict[str, object]) -> ExtractedClaims:
+        return ExtractedClaims(
+            claims=[
+                Claim(
+                    id="c1",
+                    text="Your LDL cholesterol result is recorded.",
+                    kind="clinical",
+                    evidence_refs=["call-1"],
+                )
+            ]
+        )
+
+
+class _StubScopeJudge:
+    """A clean draft: no boundary crossed."""
+
+    def invoke(self, input: dict[str, object]) -> ScopeJudgement:
+        return ScopeJudgement()
+
+
 @pytest.fixture
 def graph_and_patient(tmp_path: Path) -> tuple[object, str]:
     stores = build_fixture_stores(tmp_path)
@@ -85,6 +109,8 @@ def graph_and_patient(tmp_path: Path) -> tuple[object, str]:
         intent_chain=_StubIntent(),
         answer_writer_chain=_StubAnswerWriter(),
         explainer=_StubExplainer(patient_id),
+        claim_extractor_chain=_StubClaimExtractor(),
+        scope_judge_chain=_StubScopeJudge(),
     )
     return graph, patient_id
 
@@ -108,6 +134,10 @@ def test_question_to_cited_patient_answer(graph_and_patient) -> None:  # type: i
     assert draft.citations[0].tool_call_id in evidence_ids
     # Reading level was measured, not authored.
     assert draft.reading_level_measured is not None
+    # Post-flight cleared the draft and published it byte-identically (§5.3).
+    assert final["post_flight"].disposition == "publish"
+    assert final["published"].body == draft.body
+    assert final["published"].disposition == "answered"
 
 
 def test_emergency_question_short_circuits_before_tools(graph_and_patient) -> None:  # type: ignore[no-untyped-def]

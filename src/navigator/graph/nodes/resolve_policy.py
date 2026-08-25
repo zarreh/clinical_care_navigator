@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from navigator.guardrails.autonomy import action_for_band, effective_band
 from navigator.schemas.preflight import (
+    ACTION_SEVERITY,
     Band,
     IntentAssessment,
     PolicyAction,
@@ -27,15 +28,6 @@ from navigator.schemas.scoping import ToolScope
 from navigator.settings import AutonomyLevel
 from navigator.store.models import PolicyRule
 from navigator.tools.registry import ToolRegistry
-
-# Fixed severity precedence (§5.2). Higher wins.
-_SEVERITY: dict[PolicyAction, int] = {
-    "direct_to_emergency_care": 50,
-    "crisis": 45,
-    "out_of_scope": 30,
-    "clinician_review": 20,
-    "allow": 0,
-}
 
 # Map the classifier's question class to the action/band it implies. The
 # classifier never names an action directly — it classifies, and code routes.
@@ -105,7 +97,7 @@ def resolve_policy(
     else:
         screen_action, screen_band, template_id = screen
         # More restrictive wins; record whether the layers agreed.
-        if _SEVERITY[screen_action] >= _SEVERITY[classifier_action]:
+        if ACTION_SEVERITY[screen_action] >= ACTION_SEVERITY[classifier_action]:
             combined_action, classified_band = screen_action, screen_band
         else:
             combined_action, classified_band = classifier_action, classifier_band

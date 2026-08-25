@@ -7,8 +7,6 @@
     four things it is never allowed to do. Only the last one uses a language
     model, and it is only reached if the first two pass.
 
-*Arrives in Phase 5.*
-
 ## 1 · `critical_value` — pure code
 
 Every lab value the run retrieved is compared against

@@ -34,6 +34,23 @@ def route_after_resolve_policy(state: NavigatorState) -> TemplateBranch:
     return _ACTION_TO_BRANCH[decision.action]
 
 
+def route_after_post_flight(
+    state: NavigatorState,
+) -> Literal["publish", "escalate", "review", "investigate"]:
+    """Route on the post-flight disposition (§5.3).
+
+    `publish` -> the deterministic publish node; `escalate` -> the templated
+    override (critical value / out-of-scope); `review` -> the clinician review
+    queue; `loop` -> back into the investigate loop to gather the missing
+    citation. `loop` is mapped to `investigate` because that is the node that
+    re-gathers evidence after the citation feedback is appended.
+    """
+    disposition = state["post_flight"].disposition
+    if disposition == "loop":
+        return "investigate"
+    return disposition
+
+
 def route_after_investigate(
     state: NavigatorState,
 ) -> Literal["investigate", "draft_answer", "budget_exceeded"]:

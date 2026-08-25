@@ -17,6 +17,7 @@ response can name the published source it rests on.
 
 from __future__ import annotations
 
+from navigator.schemas.postflight import CriticalFinding, ScopeJudgement
 from navigator.store.models import PolicyRule
 
 
@@ -65,6 +66,61 @@ def clinician_review_template(rule: PolicyRule | None) -> str:
         "information for them and flagged it for review — you'll see a response "
         "here once a clinician has looked at it. If your symptoms are urgent, "
         "don't wait: contact your clinician's office or emergency care directly."
+    )
+
+
+def critical_value_template(finding: CriticalFinding) -> str:
+    """Direct to emergency care over a retrieved panic value (§5.3, case 4).
+
+    This is the post-flight counterpart to `emergency_template`: the escalation
+    was triggered not by the question but by the value itself, so the wording
+    names the analyte and quotes the published threshold the reference row
+    carries. It still detects a pattern against a published number and directs to
+    care — it does not diagnose (§3.7).
+    """
+    band_word = (
+        "above the critical-high" if finding.band == "critical_high" else "below the critical-low"
+    )
+    basis = ""
+    if finding.source_name and finding.source_url and finding.source_quote:
+        basis = (
+            f"\n\nThis threshold is from {finding.source_name}: "
+            f'"{finding.source_quote}" ({finding.source_url})'
+        )
+    return (
+        f"One of your recent results — {finding.analyte} at {finding.value} "
+        f"{finding.unit} — is {band_word} level ({finding.threshold} {finding.unit}) "
+        "at which published guidance advises prompt medical attention. Please "
+        "contact your care team or seek emergency care now rather than waiting. "
+        "Only a clinician can assess what this value means for you." + basis
+    )
+
+
+def scope_violation_template(judgement: ScopeJudgement) -> str:
+    """Route to a clinician when the draft crossed a scope boundary (§5.3).
+
+    The scope judge answers four narrow questions; this names which boundary was
+    crossed and quotes the draft's own span that crossed it, so the routing shows
+    its basis rather than asserting "unsafe". The boundary is scope, not
+    obstruction — the wording is a route to the right owner.
+    """
+    reasons: list[str] = []
+    labels = {
+        "diagnoses": "names or confirms a diagnosis",
+        "changes_medication": "changes a medication or dose",
+        "directs_clinical_action": "directs a specific clinical action",
+        "contradicts_record": "contradicts the medical record",
+    }
+    for field, label in labels.items():
+        if getattr(judgement, field):
+            span = judgement.spans.get(field)
+            reasons.append(f"{label}" + (f' ("{span}")' if span else ""))
+    detail = "; ".join(reasons) if reasons else "goes beyond general information"
+    return (
+        "I've prepared information for your care team to review rather than "
+        f"answering directly, because the response {detail}. A clinician who "
+        "knows your full history should weigh in. If your symptoms are urgent, "
+        "contact your clinician's office or emergency care directly."
     )
 
 

@@ -30,6 +30,28 @@ PolicyAction = Literal[
     "allow",
 ]
 
+# Fixed severity precedence (§5.2), shared by the pre-flight combiner and the
+# post-flight override so both rank actions the same way. Higher wins.
+ACTION_SEVERITY: dict[PolicyAction, int] = {
+    "direct_to_emergency_care": 50,
+    "crisis": 45,
+    "out_of_scope": 30,
+    "clinician_review": 20,
+    "allow": 0,
+}
+
+
+def more_restrictive(first: PolicyAction, second: PolicyAction) -> PolicyAction:
+    """Return whichever action is more restrictive by severity.
+
+    This is the one place the "restriction is monotonic through the graph" rule
+    lives: `resolve_policy` uses it to combine the two pre-flight layers, and
+    post-flight uses it to combine its override with the pre-flight decision, so
+    post-flight can only ever escalate — never relax — a restriction (§5.3).
+    """
+    return first if ACTION_SEVERITY[first] >= ACTION_SEVERITY[second] else second
+
+
 # Bands are a property of the question (§5.9). The autonomy setting moves only
 # the inform/recommend boundary; it never moves the escalate boundary.
 Band = Literal["inform", "recommend", "escalate"]

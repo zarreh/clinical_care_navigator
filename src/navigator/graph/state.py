@@ -16,7 +16,8 @@ from typing import TypedDict
 
 from langchain_core.messages import BaseMessage
 
-from navigator.schemas.answer import PatientAnswer
+from navigator.schemas.answer import Claim, PatientAnswer
+from navigator.schemas.postflight import PostFlightResult
 from navigator.schemas.preflight import IntentAssessment, PolicyDecision, RuleMatch
 from navigator.schemas.scoping import EvidenceRecord, SecurityEvent
 
@@ -59,3 +60,9 @@ class NavigatorState(TypedDict, total=False):
 
     # draft
     draft: PatientAnswer
+
+    # post-flight (the centrepiece — §5.3)
+    claims: list[Claim]
+    evidence_pass: int
+    post_flight: PostFlightResult
+    published: PatientAnswer

@@ -30,6 +30,12 @@ matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt  # noqa: E402
 
+from navigator.graph.nodes.post_flight import build_post_flight_node  # noqa: E402
+from navigator.schemas.answer import Claim  # noqa: E402
+from navigator.schemas.postflight import ScopeJudgement  # noqa: E402
+from navigator.schemas.preflight import PolicyDecision  # noqa: E402
+from navigator.schemas.scoping import EvidenceRecord, ToolScope  # noqa: E402
+from navigator.store.record_store import RecordStore  # noqa: E402
 from tests.fixtures import SEED_FILE, build_fixture_stores  # noqa: E402
 
 ASSETS_DIR = Path(__file__).parent / "assets"
@@ -40,6 +46,7 @@ OUT_OF_RANGE = "#d97706"
 CRITICAL = "#dc2626"
 COVERED = "#2563eb"
 GAP = "#dc2626"
+OVERRIDE = "#7c3aed"
 
 
 def _save(fig: plt.Figure, name: str) -> None:
@@ -184,6 +191,170 @@ def record_store_profile(records: sqlite3.Connection, education: sqlite3.Connect
     _save(fig, "record-store-profile")
 
 
+def _demo_labs_evidence(loinc: str, value: float) -> EvidenceRecord:
+    return EvidenceRecord(
+        tool_call_id="call-1",
+        tool_name="get_labs",
+        args_after_scoping={},
+        result={"labs": [{"loinc_code": loinc, "value_number": value, "units": "mmol/L"}]},
+        retrieved_at="2026-01-01T00:00:00+00:00",
+    )
+
+
+def _demo_draft(body: str, claims: list[Claim]):  # type: ignore[no-untyped-def]
+    from navigator.schemas.answer import Citation, PatientAnswer
+
+    return PatientAnswer(
+        body=body,
+        claims=claims,
+        citations=[
+            Citation(claim_id=c.id, tool_call_id=c.evidence_refs[0])
+            for c in claims
+            if c.evidence_refs
+        ],
+        reading_level_target=8.0,
+        reading_level_measured=7.0,
+        autonomy_level="L2_balanced",
+    )
+
+
+class _ScriptedJudge:
+    def __init__(self, judgement: ScopeJudgement) -> None:
+        self._judgement = judgement
+
+    def invoke(self, _input: dict[str, object]) -> ScopeJudgement:
+        return self._judgement
+
+
+def _allow_decision() -> PolicyDecision:
+    return PolicyDecision(
+        action="allow",
+        band="inform",
+        rule_matches=[],
+        layer_agreement=True,
+        tool_scope=ToolScope(allowed_tool_names=frozenset(), row_cap=25),
+        autonomy_level="L2_balanced",
+    )
+
+
+def post_flight_overrides(store: RecordStore, records: sqlite3.Connection) -> None:
+    """Chart 4: which post-flight check overrode, by trigger (docs/PLAN.md §6.3 #4).
+
+    This is the chart a buyer reads to see the *second* half of the sandwich is
+    real. It is honestly a **mechanism demonstration**, not a measured rate: the
+    real override rate over a run population arrives in Phase 8. The critical-value
+    bar is computed for real — the whole committed fixture lab population is run
+    through `scan_critical_values`, and the one injected panic value (case 4)
+    shows up as the sole critical finding, which is the point: the machinery
+    fires on exactly the value that should override and nothing else. The other
+    three bars run a small committed demonstration battery through the real
+    post-flight node, so each bar is produced by the same code the graph runs,
+    not a hand-typed number.
+
+    A run is attributed to a trigger only when post-flight actually changed the
+    outcome (disposition != publish); a clean draft contributes to no bar.
+    """
+    from navigator.guardrails.critical_values import scan_critical_values
+
+    # --- critical-value bar: real, over the whole fixture population ----------
+    lab_rows = records.execute(
+        "SELECT loinc_code, value_number, units FROM observations "
+        "WHERE category = 'laboratory' AND value_number IS NOT NULL"
+    ).fetchall()
+    population_evidence = [
+        EvidenceRecord(
+            tool_call_id=f"pop-{index}",
+            tool_name="get_labs",
+            args_after_scoping={},
+            result={
+                "labs": [
+                    {"loinc_code": str(loinc), "value_number": float(value), "units": str(units)}
+                ]
+            },
+            retrieved_at="2026-01-01T00:00:00+00:00",
+        )
+        for index, (loinc, value, units) in enumerate(lab_rows)
+    ]
+    critical_count = len(scan_critical_values(population_evidence, store.reference_range))
+
+    # --- demonstration battery for the citation and scope triggers -----------
+    # Each case is (label, evidence, claims, scope_judgement). The battery is
+    # committed and fixed, so the chart is byte-reproducible.
+    cited = Claim(
+        id="c1", text="Your result is recorded.", kind="clinical", evidence_refs=["call-1"]
+    )
+    uncited = Claim(id="c1", text="You should take 40mg.", kind="clinical", evidence_refs=[])
+    clean = ScopeJudgement()
+    battery: list[tuple[str, list[EvidenceRecord], list[Claim], ScopeJudgement]] = [
+        ("uncited", [_demo_labs_evidence("4548-4", 6.5)], [uncited], clean),
+        ("uncited", [_demo_labs_evidence("4548-4", 5.5)], [uncited], clean),
+        (
+            "diagnosis",
+            [_demo_labs_evidence("4548-4", 6.5)],
+            [cited],
+            ScopeJudgement(diagnoses=True, spans={"diagnoses": "you have diabetes"}),
+        ),
+        (
+            "medication",
+            [_demo_labs_evidence("4548-4", 5.5)],
+            [cited],
+            ScopeJudgement(
+                changes_medication=True, spans={"changes_medication": "double your dose"}
+            ),
+        ),
+        ("clean", [_demo_labs_evidence("4548-4", 5.5)], [cited], clean),
+    ]
+
+    tallies = {"uncited": 0, "diagnosis": 0, "medication": 0}
+    for _label, evidence, claims, judgement in battery:
+        node = build_post_flight_node(
+            store.reference_range, _ScriptedJudge(judgement), floor=1.0, max_evidence_passes=0
+        )
+        state = {
+            "draft": _demo_draft("A demonstration draft.", claims),
+            "evidence": evidence,
+            "claims": claims,
+            "policy_decision": _allow_decision(),
+            "messages": [],
+        }
+        result = node(state)["post_flight"]  # type: ignore[arg-type]
+        if result.disposition == "publish":
+            continue
+        if result.trigger == "citation_coverage":
+            tallies["uncited"] += 1
+        elif result.trigger == "scope_judge" and result.scope_judgement is not None:
+            if result.scope_judgement.diagnoses:
+                tallies["diagnosis"] += 1
+            elif result.scope_judgement.changes_medication:
+                tallies["medication"] += 1
+
+    labels = ["Critical value", "Uncited claim", "Diagnosis", "Medication change"]
+    counts = [critical_count, tallies["uncited"], tallies["diagnosis"], tallies["medication"]]
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    bars = ax.bar(labels, counts, color=OVERRIDE)
+    for rect, count in zip(bars, counts, strict=True):
+        ax.text(
+            rect.get_x() + rect.get_width() / 2,
+            rect.get_height(),
+            f" {count}",
+            ha="center",
+            va="bottom",
+            fontsize=10,
+        )
+    ax.set_ylabel("Overrides")
+    ax.set_ylim(0, max(counts) + 1)
+    ax.set_title(
+        f"Post-flight overrides by trigger — mechanism demonstration "
+        f"(critical bar: real, n={len(lab_rows)} population results; "
+        "others: committed battery; real rates in Phase 8)",
+        fontsize=9,
+    )
+    fig.suptitle("What overrode, and why", fontweight="bold")
+    fig.tight_layout()
+    _save(fig, "post-flight-overrides")
+
+
 def main() -> int:
     matplotlib.rcParams["svg.hashsalt"] = "clinical-care-navigator"
     plt.style.use(STYLE_PATH)
@@ -191,9 +362,12 @@ def main() -> int:
         stores = build_fixture_stores(Path(workspace))
         records = sqlite3.connect(stores.records_db)
         education = sqlite3.connect(stores.education_db)
+        store = RecordStore(stores.records_db)
         try:
             record_store_profile(records, education)
+            post_flight_overrides(store, records)
         finally:
+            store.close()
             records.close()
             education.close()
     print(f"wrote charts to {ASSETS_DIR.relative_to(Path(__file__).parents[1])}/")
