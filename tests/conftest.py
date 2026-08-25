@@ -7,9 +7,11 @@ from typing import TYPE_CHECKING
 import pytest
 
 from navigator.store import EducationStore, PolicyStore, RecordStore
+from navigator.store.models import PolicyRule
 from tests.fixtures import FixtureStores, build_fixture_stores
 
 if TYPE_CHECKING:
+    from navigator.guardrails.rule_engine import RuleEngine
     from navigator.tools import ScopedToolExecutor, ToolRegistry
 
 
@@ -62,3 +64,15 @@ def executor(registry: ToolRegistry) -> ScopedToolExecutor:
 
     # A fixed clock keeps evidence timestamps deterministic in assertions.
     return ScopedToolExecutor(registry, now=lambda: "2026-08-20T00:00:00+00:00")
+
+
+@pytest.fixture
+def rule_engine(policy_store: PolicyStore) -> RuleEngine:
+    from navigator.guardrails.rule_engine import RuleEngine
+
+    return RuleEngine(policy_store.enabled_rules())
+
+
+@pytest.fixture
+def policy_rules(policy_store: PolicyStore) -> list[PolicyRule]:
+    return policy_store.enabled_rules()

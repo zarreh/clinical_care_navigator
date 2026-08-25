@@ -5,6 +5,15 @@ application (docs/PLAN.md §9.3). Tool results are Pydantic models so the bounda
 is checked in both directions, unlike the source notebook's JSON strings (§3.6).
 """
 
+from navigator.schemas.preflight import (
+    Band,
+    IntentAssessment,
+    PolicyAction,
+    PolicyDecision,
+    QuestionClass,
+    RedFlag,
+    RuleMatch,
+)
 from navigator.schemas.scoping import (
     EvidenceRecord,
     SecurityEvent,
@@ -13,7 +22,14 @@ from navigator.schemas.scoping import (
 )
 
 __all__ = [
+    "Band",
     "EvidenceRecord",
+    "IntentAssessment",
+    "PolicyAction",
+    "PolicyDecision",
+    "QuestionClass",
+    "RedFlag",
+    "RuleMatch",
     "SecurityEvent",
     "SecurityEventKind",
     "ToolScope",

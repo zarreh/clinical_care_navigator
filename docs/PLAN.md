@@ -1231,3 +1231,22 @@ under a restricted `ToolScope` is refused at the executor; every result is
 `tool_call_id`-addressable. `make check` green (ruff, mypy --strict, 4
 import-linter contracts, 66 tests) and `mkdocs build --strict` clean.
 
+**2026-08-25 — Phase 3 (pre-flight gate) built.** `guardrails/rule_engine.py`,
+`guardrails/autonomy.py`, `guardrails/templates.py`, `chains/intent_classifier.py`,
+`nodes/resolve_policy.py`, and the versioned prompt file. The two pre-flight layers
+are combined by severity precedence with the disagreement recorded (§5.2).
+
+| Change | Origin |
+|---|---|
+| The negation/attribution context check is what makes canonical case 12 an ordinary answer: a red-flag term quoted from the record ("my discharge note says to watch for chest pain") is seen, recorded as `attributed`, and does not fire. Substring matching alone is not a guardrail (§3.2, D-A3-2) | Design requirement, verified by test |
+| The autonomy setting moves only the answer-vs-review boundary (`allow` ↔ `clinician_review`). An explicit `out_of_scope` refusal or an escalation from either layer is authoritative and never moved — the same question produces different bands at L1/L2/L3 but identical escalation at all three (§5.9) | Design requirement, verified by test |
+| A self-harm red flag routes to the dedicated `crisis` path (988), distinct from the medical-emergency path in both resource and wording (§4.4) | Design requirement, verified by test |
+| The intent classifier is a pure LCEL chain behind a `Protocol`, so the gate is tested with a stub — no LLM, no network. The metaphor case (11) is caught by the classifier layer precisely because the deterministic screen fires nothing | Design requirement, verified by test |
+
+Exit criteria verified: canonical cases 2, 3, 9, 10, 11, 12, 13 route correctly;
+every non-`allow` decision binds a scope from which all patient tools are absent
+(refusal short-circuits before PHI, §3.3); layer disagreement is recorded; bands
+differ across L1/L2/L3 while escalation is identical. `make check` green (ruff,
+mypy --strict, 4 import-linter contracts, 96 tests) and `mkdocs build --strict`
+clean.
+
