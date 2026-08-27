@@ -24,6 +24,7 @@ from langchain_core.callbacks.base import BaseCallbackHandler
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import Command
 from pydantic import BaseModel
+from zarreh_agentkit.observability import build_tracing_callbacks
 
 from navigator.graph.builder import NavigatorGraph
 from navigator.graph.cost_tracking import CostTrackingHandler
@@ -64,14 +65,6 @@ def _json_default(value: object) -> object:
     return str(value)
 
 
-def _build_tracing_callbacks(settings: Settings) -> list[BaseCallbackHandler]:
-    if not settings.langsmith_api_key:
-        return []
-    from langchain_core.tracers.langchain import LangChainTracer
-
-    return [LangChainTracer(project_name=settings.langsmith_project)]
-
-
 async def execute_conversation(
     run_id: str,
     question: str,
@@ -83,7 +76,10 @@ async def execute_conversation(
 ) -> None:
     structlog.contextvars.bind_contextvars(correlation_id=run_id)
     cost_handler = CostTrackingHandler()
-    callbacks: list[BaseCallbackHandler] = [cost_handler, *_build_tracing_callbacks(settings)]
+    callbacks: list[BaseCallbackHandler] = [
+        cost_handler,
+        *build_tracing_callbacks(settings.langsmith_api_key, settings.langsmith_project),
+    ]
     config: RunnableConfig = {
         "configurable": {"thread_id": run_id},
         "callbacks": callbacks,
@@ -224,7 +220,10 @@ async def resume_conversation(
     run_id = review.run_id
     structlog.contextvars.bind_contextvars(correlation_id=run_id)
     cost_handler = CostTrackingHandler()
-    callbacks: list[BaseCallbackHandler] = [cost_handler, *_build_tracing_callbacks(settings)]
+    callbacks: list[BaseCallbackHandler] = [
+        cost_handler,
+        *build_tracing_callbacks(settings.langsmith_api_key, settings.langsmith_project),
+    ]
     config: RunnableConfig = {
         "configurable": {"thread_id": review.thread_id},
         "callbacks": callbacks,

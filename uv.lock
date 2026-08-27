@@ -1936,6 +1936,7 @@ dependencies = [
     { name = "textstat" },
     { name = "truststore" },
     { name = "uvicorn", extra = ["standard"] },
+    { name = "zarreh-agentkit" },
 ]
 
 [package.optional-dependencies]
@@ -1998,6 +1999,7 @@ requires-dist = [
     { name = "textstat", specifier = ">=0.7" },
     { name = "truststore", specifier = ">=0.9" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.32" },
+    { name = "zarreh-agentkit", editable = "../zarreh_agentkit" },
 ]
 provides-extras = ["dev", "docs"]
 
@@ -4186,6 +4188,45 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/ad/23/2d549e5d5d7759eaf9ac2d2d2ab81ff60f1bb2b52cdaae8e5ec5c6524354/xxhash-4.0.1-graalpy312-graalpy250_312_native-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:deca2a30d983d240b8375ec2ee0a4288e72042827fc61df2f7671f8467e4cb2f", size = 38206, upload-time = "2026-08-17T08:36:32.193Z" },
     { url = "https://files.pythonhosted.org/packages/79/98/1ee576b27f78e6107ee4ea8ac03e8a52888dff256e57d560f8282c195563/xxhash-4.0.1-graalpy312-graalpy250_312_native-win_amd64.whl", hash = "sha256:7c343ee174d417a44d0c3355602c0cbbfa52a04d1bbbf1723378c7d2c8f60626", size = 37127, upload-time = "2026-08-17T08:23:42.705Z" },
 ]
+
+[[package]]
+name = "zarreh-agentkit"
+version = "0.2.0"
+source = { editable = "../zarreh_agentkit" }
+dependencies = [
+    { name = "fastapi" },
+    { name = "langchain-core" },
+    { name = "langgraph" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "slowapi" },
+    { name = "starlette" },
+    { name = "structlog" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fastapi", specifier = ">=0.115" },
+    { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.27" },
+    { name = "import-linter", marker = "extra == 'dev'", specifier = ">=2.1" },
+    { name = "langchain-core", specifier = ">=0.3" },
+    { name = "langgraph", specifier = ">=0.2" },
+    { name = "mkdocs", marker = "extra == 'docs'", specifier = ">=1.6" },
+    { name = "mkdocs-material", marker = "extra == 'docs'", specifier = ">=9.5" },
+    { name = "mkdocstrings", extras = ["python"], marker = "extra == 'docs'", specifier = ">=0.27" },
+    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.13" },
+    { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.0" },
+    { name = "pydantic", specifier = ">=2.9" },
+    { name = "pydantic-settings", specifier = ">=2.6" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.3" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.24" },
+    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=6.0" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.7" },
+    { name = "slowapi", specifier = ">=0.1.9" },
+    { name = "starlette", specifier = ">=0.41" },
+    { name = "structlog", specifier = ">=24.4" },
+]
+provides-extras = ["dev", "docs"]
 
 [[package]]
 name = "zstandard"
