@@ -46,22 +46,22 @@ graph TD
 
 ## Status
 
-**Phase 0 — template transplant.** Walking skeleton only. See
-`docs/PLAN.md` for the full build plan and
-`docs/PLAN.md` §7 for phase-by-phase exit criteria.
+The guardrail sandwich, tools, API and frontend are built and tested. See
+`docs/PLAN.md` for the full build plan and `docs/PLAN.md` §7 for
+phase-by-phase exit criteria.
 
 | Phase | State |
 |---|---|
-| 0 · Template transplant | in progress |
-| 1 · Data foundation | not started |
-| 2 · Tools and scoping | not started |
-| 3 · Pre-flight gate | not started |
-| 4 · Agent core and draft | not started |
-| 5 · Post-flight ★ | not started |
-| 6 · API, persistence, observability | not started |
-| 7 · Frontend | not started |
-| 8 · Evals | not started |
-| 9 · Docs, credibility, launch | not started |
+| 0 · Template transplant | done |
+| 1 · Data foundation | done |
+| 2 · Tools and scoping | done |
+| 3 · Pre-flight gate | done |
+| 4 · Agent core and draft | done |
+| 5 · Post-flight ★ | done |
+| 6 · API, persistence, observability | done |
+| 7 · Frontend | done |
+| 8 · Evals | in progress — Layer 1 canonical harness implemented (16 cases, live model), evidence pages (`docs/evidence/evaluation.md` etc.) not yet measured |
+| 9 · Docs, credibility, launch | not started — CD's `deploy-vps` step is still a placeholder |
 
 ## Run it
 

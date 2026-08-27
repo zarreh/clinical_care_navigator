@@ -5,6 +5,19 @@ from a single implementation. A3 is the second implementation, so extraction
 becomes *possible* — but it happens as a discrete step **after** A3 ships, driven
 by this list.
 
+**Update (2026-08-27):** that discrete step happened, as `zarreh-agentkit`
+v0.2.0, once A12 existed too as a third real instance. Rows 1–4 and 12 are
+now harvested (see the kit's `settings`, `observability.build_tracing_callbacks`,
+`api.middleware`, `api.rate_limit`, `guardrails.budget`); row 14's *shell*
+(`evals.run_eval_cli`) is harvested, but the metric set stays local, exactly
+as this row already said it would. Row 2's "incidental, extract verbatim"
+call was corrected in the harvest: `get_logger` extracts cleanly, but
+`configure_logging` does not — this service's PHI-redactor hook is an
+essential difference the kit has no reason to carry for a single consumer,
+so `configure_logging` stays local. Rows 5–11, 13, 15–17 are unaffected by
+this pass (Docker/CI/docs/store-layer patterns, or conventions rather than
+code) and remain open harvest candidates.
+
 For each entry: what was copied, what had to change, and whether the difference
 is **essential** (the two apps genuinely need to differ) or **incidental** (they
 differ only because they were written separately). Incidental differences are
@@ -13,10 +26,10 @@ accommodate.
 
 | # | Pattern | Source in A2 | Change in A3 | Difference |
 |---|---|---|---|---|
-| 1 | `Settings` + `get_settings` via `pydantic-settings` | `settings.py` | Different fields, `NAVIGATOR_` prefix | Incidental — candidate for an X2 base class |
-| 2 | `configure_logging` / `get_logger` | `observability.py` | Identical | Incidental — extract verbatim |
-| 3 | `MaxBodySizeMiddleware` | `api/middleware.py` | Identical apart from the docstring reference | Incidental — extract verbatim |
-| 4 | Per-route `Limiter` rather than `SlowAPIMiddleware` | `api/rate_limit.py` | Identical | Incidental — extract verbatim, including the `include_router` caveat |
+| 1 | ✅ `Settings` + `get_settings` via `pydantic-settings` | `settings.py` | Different fields, `NAVIGATOR_` prefix | Incidental — harvested as `zarreh_agentkit.settings.AgentSettings` |
+| 2 | ✅ `configure_logging` / `get_logger` | `observability.py` | Identical *only for `get_logger`* | `get_logger` harvested verbatim; `configure_logging` stayed local — its PHI-redactor hook is essential, not incidental as first thought |
+| 3 | ✅ `MaxBodySizeMiddleware` | `api/middleware.py` | Identical apart from the docstring reference | Incidental — harvested as `zarreh_agentkit.api.middleware` |
+| 4 | ✅ Per-route `Limiter` rather than `SlowAPIMiddleware` | `api/rate_limit.py` | Identical | Incidental — harvested as `zarreh_agentkit.api.rate_limit`, including the `include_router` caveat |
 | 5 | Multi-stage Dockerfile, non-root, `HEALTHCHECK` | `Dockerfile` | Package name only | Incidental |
 | 6 | CI/CD split, `mkdocs build --strict` gating PRs | `.github/workflows/` | Package name only | Incidental |
 | 7 | MkDocs + Material config and plugin set | `mkdocs.yml` | Different nav | Incidental — this is X5 `zarreh-docs-theme` |
@@ -24,9 +37,9 @@ accommodate.
 | 9 | `builder.py` as the only wiring file; node filename == node name == span name | `graph/builder.py` | Same convention | **Essential convention**, not shared code |
 | 10 | Deterministic publication (A2 D-A2-1 → A3 D-A3-6) | `graph/nodes/publish.py` | Same property, different payload | **Essential** — second occurrence; promote to an X2 convention |
 | 11 | Claim-level grounding schemas (`Claim` / `ClaimAnalysis`) | `schemas/` | A3 adds `kind: clinical\|navigational` | **Essential** — the shared schema needs the claim-kind axis |
-| 12 | Budget guardrail | `graph/budget.py` | A3 terminates with a *clinical* conservative template | **Essential** — the ceiling is shared, the breach response is not |
+| 12 | ✅ Budget guardrail | `graph/budget.py` | A3 terminates with a *clinical* conservative template | **Essential** — the ceiling is now `zarreh_agentkit.guardrails.budget`, the breach response stayed local as predicted |
 | 13 | Narrow state projections | `graph/state.py` | Same idea, different views | **Essential convention** — third occurrence overall (UT wk11, UT wk13, A2) |
-| 14 | Two evaluation layers with metrics fixed before labelling | `evals/` | Different metrics | **Essential** — the runner is shareable, the metric set is not |
+| 14 | ✅ Two evaluation layers with metrics fixed before labelling | `evals/` | Different metrics, and A3's Layer 1 needs the live model, not an oracle | **Essential** — the run/print/gate shell is now `zarreh_agentkit.evals.run_eval_cli`, the metric set stayed local as predicted |
 | 15 | `plot_style.mplstyle` and the light/dark `_save` helper | `docs/generate_plots.py`, `docs/assets/` | Copied verbatim, then **made deterministic**: `metadata={"Date": None}` plus a pinned `svg.hashsalt` | **Essential fix** — A2's charts embed a timestamp, so its own no-drift rule cannot run. The shared version should carry A3's determinism |
 | 16 | Store repository layer with typed row models | `store/fact_store.py`, `store/models.py` | A3 adds a **row cap inside the store** and admits no unscoped clinical read | **Essential** — the cap is a minimum-necessary control in A3 and a cost control in A2 |
 | 17 | Build scripts as `data/` modules run by `make data` | `data/build_store.py` | Same shape; A3 adds fail-loud provenance checks | Incidental — the pattern is shared, the checks are domain-specific |
