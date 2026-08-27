@@ -1,16 +1,25 @@
-"""Layer 1 canonical regression runner (docs/PLAN.md §4.5).
+"""CLI entry point for `make eval` (docs/PLAN.md §7 Phase 8).
 
-Phase 0 ships the entry point so `make eval` and the CI gate exist from the
-start; the sixteen canonical cases arrive with the phases that make each of them
-meaningful.
+Runs the Layer 1 canonical regression set and prints the pass/fail matrix.
+The run/print/gate shell is `zarreh_agentkit.evals.run_eval_cli` (shared
+with A2); the scenarios, fixtures and checks stay local, per HARVEST #14.
+
+Requires `NAVIGATOR_OPENAI_API_KEY` (and, for traced runs, the LangSmith
+vars) — this suite drives the real compiled graph with the live model; see
+evals/canonical.py for why, unlike A2, no oracle stands in for it.
 """
+
+from __future__ import annotations
 
 import sys
 
+from zarreh_agentkit.evals import run_eval_cli
+
+from evals.canonical import outcomes, print_report, run_canonical_eval
+
 
 def main() -> int:
-    print("Layer 1 canonical eval — 0 cases registered (Phase 0 skeleton).")
-    return 0
+    return run_eval_cli(run_canonical_eval, print_report, outcomes)
 
 
 if __name__ == "__main__":
