@@ -119,4 +119,4 @@ source_modules = ["navigator"]
 forbidden_modules = ["dspy", "deepeval"]
 
 [tool.uv.sources]
-zarreh-agentkit = { path = "../zarreh_agentkit", editable = true }
+zarreh-agentkit = { git = "https://github.com/zarreh/zarreh_agentkit.git", tag = "v0.2.0" }
