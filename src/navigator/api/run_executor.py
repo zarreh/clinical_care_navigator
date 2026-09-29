@@ -24,6 +24,7 @@ from langchain_core.callbacks.base import BaseCallbackHandler
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import Command
 from pydantic import BaseModel
+from zarreh_agentkit.observability import build_tracing_callbacks
 
 from navigator.graph.builder import NavigatorGraph
 from navigator.graph.cost_tracking import CostTrackingHandler
@@ -31,13 +32,13 @@ from navigator.graph.state import NavigatorState
 from navigator.observability import get_logger
 from navigator.schemas.answer import PatientAnswer
 from navigator.settings import Settings
-from navigator.store.models import ReviewItem
+from navigator.store.models import CostEntry, ReviewItem
 from navigator.store.review_queue import ReviewQueue
 from navigator.store.run_store import RunStore
 
 logger = get_logger(__name__)
 
-# The twelve genuine node boundaries. astream_events also emits on_chain_end for
+# The genuine node boundaries. astream_events also emits on_chain_end for
 # internal LCEL sub-steps whose names can collide with a node's langgraph_node
 # tag, so filtering on name alone is not enough — see the name == node check.
 _GRAPH_NODE_NAMES = frozenset(
@@ -45,6 +46,7 @@ _GRAPH_NODE_NAMES = frozenset(
         "intake",
         "screen_rules",
         "classify_intent",
+        "detect_language",
         "resolve_policy",
         "investigate",
         "draft_answer",
@@ -65,11 +67,16 @@ def _json_default(value: object) -> object:
 
 
 def _build_tracing_callbacks(settings: Settings) -> list[BaseCallbackHandler]:
-    if not settings.langsmith_api_key:
-        return []
-    from langchain_core.tracers.langchain import LangChainTracer
+    return build_tracing_callbacks(settings.langsmith_api_key, settings.langsmith_project)
 
-    return [LangChainTracer(project_name=settings.langsmith_project)]
+
+def _to_store_costs(handler: CostTrackingHandler) -> list[CostEntry]:
+    # The library's handler yields a structural CostEntryLike; the store takes
+    # its own concrete row type.
+    return [
+        CostEntry(e.node, e.model, e.prompt_tokens, e.completion_tokens, e.cost_usd)
+        for e in handler.entries
+    ]
 
 
 async def execute_conversation(
@@ -113,7 +120,7 @@ async def execute_conversation(
             )
             sequence += 1
 
-        run_store.record_costs(run_id, list(cost_handler.entries))
+        run_store.record_costs(run_id, _to_store_costs(cost_handler))
 
         interrupt_payload = _pending_interrupt(graph, config)
         if interrupt_payload is not None:
@@ -250,7 +257,7 @@ async def resume_conversation(
                 run_id, sequence, node_name, json.dumps(output, default=_json_default)
             )
             sequence += 1
-        run_store.record_costs(run_id, list(cost_handler.entries))
+        run_store.record_costs(run_id, _to_store_costs(cost_handler))
         _finalize(run_store, run_id, final_state)
     except Exception as exc:  # noqa: BLE001 — any failure must mark the run failed
         logger.error("resume_failed", run_id=run_id, error=str(exc))

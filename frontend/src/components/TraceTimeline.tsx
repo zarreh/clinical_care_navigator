@@ -6,6 +6,7 @@ const NODE_LABELS: Record<string, string> = {
   intake: "Reading your question",
   screen_rules: "Screening for red-flag safety rules",
   classify_intent: "Understanding what you are asking",
+  detect_language: "Checking the language of your question",
   resolve_policy: "Resolving the applicable policy",
   investigate: "Looking up your own record",
   draft_answer: "Drafting an answer",

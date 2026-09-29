@@ -2,19 +2,13 @@
 modules can apply `@limiter.limit(...)` to individual endpoints without a
 circular import.
 
-Applied per-route via the decorator rather than `SlowAPIMiddleware`: the
-middleware resolves a request's handler by walking `app.routes` for plain
-`APIRoute` objects with `.endpoint`, but FastAPI's `include_router` wraps
-included routers in an internal mount object that has no `.endpoint`, so it
-finds no handler and treats every route as exempt.
+Built on `zarreh_agentkit.api.rate_limit`. Applied per-route via the decorator
+rather than `SlowAPIMiddleware`, which treats `include_router` routes as exempt.
 """
 
-from __future__ import annotations
-
-from slowapi import Limiter
-from slowapi.util import get_remote_address
+from zarreh_agentkit.api.rate_limit import build_limiter, default_rate_limit
 
 from navigator.settings import get_settings
 
-limiter = Limiter(key_func=get_remote_address)
-DEFAULT_RATE_LIMIT = f"{get_settings().rate_limit_per_minute}/minute"
+limiter = build_limiter()
+DEFAULT_RATE_LIMIT = default_rate_limit(get_settings())

@@ -71,8 +71,9 @@ pytest, `make eval`, `mkdocs build --strict`) are green on every commit.
   needs a live LLM; the oracle's cost is always $0.0000 by construction.
 - The `pro` tier (governance dashboard, red-team suite, autonomy A/B, offline
   mode, Spanish) — gated on X1 and A4 per the portfolio plan.
-- Migrating onto `zarreh-agentkit` (X2) — A2 already uses it; this repo does
-  not yet.
+- Dropping the last two local copies of shared code (the redacting log
+  configuration and the SSE node filter) — both need a small change in
+  `zarreh-agentkit` first; see `docs/HARVEST.md` (Extraction status).
 - The shared portfolio-wide site (`/writing`, `/methodology`, the per-app
   card grid) doesn't exist yet outside this repo; draft content for this
   app's card and its `/writing` post are staged in `docs/` pending it.

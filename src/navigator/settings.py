@@ -1,27 +1,22 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import SettingsConfigDict
+from zarreh_agentkit.settings import AgentSettings
 
 AutonomyLevel = Literal["L1_conservative", "L2_balanced", "L3_permissive"]
 
 
-class Settings(BaseSettings):
+class Settings(AgentSettings):
     """Application configuration, sourced from the environment."""
 
     model_config = SettingsConfigDict(env_file=".env", env_prefix="NAVIGATOR_", extra="ignore")
 
-    environment: str = "development"
-    openai_api_key: str = ""
-
-    langsmith_api_key: str = ""
     langsmith_project: str = "clinical-care-navigator"
 
-    data_dir: str = "data"
     record_db_path: str = "data/records.db"
     education_db_path: str = "data/education.db"
     policy_db_path: str = "data/policy.db"
-    run_store_path: str = "data/runs.db"
     checkpoint_db_path: str = "data/checkpoints.db"
     # Reviews share the run-store database; the queue owns its own table.
     # A blank demo patient means "resolve the first patient in the record store"
@@ -38,7 +33,7 @@ class Settings(BaseSettings):
     max_run_seconds: float = 90.0
     citation_coverage_floor: float = 1.0
 
-    rate_limit_per_minute: int = 20
+    # Tighter than the library default: a patient question is a sentence or two.
     max_request_body_bytes: int = 8_192
 
 

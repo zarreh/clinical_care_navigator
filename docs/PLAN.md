@@ -1419,3 +1419,22 @@ expanded regulatory basis, and announcement bar; `make check` still green
 (190 tests); the frontend build and Playwright suite still pass. README
 Status rewritten from the stale "Phase 0 in progress" table to the real
 build state, with a "not done, deliberately deferred" list mirroring A2's.
+
+
+**2026-09-29 — Migrated onto `zarreh-agentkit` v0.2.0.** Settings, body-size
+middleware, per-route limiter, cost accounting, tracing callbacks and the budget
+ceiling now come from the library; the modules that used to hold them are
+re-export shims, so no import path changed. Consumed as a tag-pinned **https**
+git dependency: the repository is public, so CI and the Docker build resolve it
+without credentials (`git` added to the builder stage).
+
+| Change | Origin |
+|---|---|
+| `detect_language` (added in Phase 8) was missing from `run_executor._GRAPH_NODE_NAMES`, so a real run silently dropped its trace event, and the frontend timeline had no label for it. Fixed in three places, and `tests/api/test_trace_node_coverage.py` now asserts every node registered in the compiled graph is streamed by the executor and labelled in the timeline (sabotage-verified) | Regression from Phase 8, found during the migration |
+| Two copies stay local because the library lacks what A3 needs: the log configuration (A3 installs a PHI redactor immediately before the renderer) and the SSE bridge (A3 filters routing-function events by `name == langgraph_node`). Recorded in `HARVEST.md` as library changes, not A3 decisions | Design requirement |
+| A2 pins the library over `ssh://`, which its CI and Dockerfile cannot authenticate; A3 uses https | Implementation finding |
+
+`make check` green (192 tests), `make eval` 18/18, `mkdocs build --strict` clean,
+11 Playwright specs pass. The Docker image itself was not built (daemon not
+running); `uv pip install .`, the command the Dockerfile runs, resolves the
+dependency in a scratch environment.

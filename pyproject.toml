@@ -23,6 +23,7 @@ dependencies = [
     "qdrant-client>=1.19.0",
     "sentence-transformers>=6.0.0",
     "langgraph-checkpoint-sqlite>=3.1.1",
+    "zarreh-agentkit",
 ]
 
 [project.optional-dependencies]
@@ -116,3 +117,6 @@ name = "no DSPy or DeepEval outside evals/optimize"
 type = "forbidden"
 source_modules = ["navigator"]
 forbidden_modules = ["dspy", "deepeval"]
+
+[tool.uv.sources]
+zarreh-agentkit = { git = "https://github.com/zarreh/zarreh_agentkit.git", tag = "v0.2.0" }
