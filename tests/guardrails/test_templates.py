@@ -6,6 +6,7 @@ from navigator.guardrails.templates import (
     clinician_review_template,
     crisis_template,
     emergency_template,
+    language_limitation_template,
     out_of_scope_template,
     render_template,
 )
@@ -57,6 +58,14 @@ def test_out_of_scope_template_is_a_boundary_not_a_refusal() -> None:
 def test_clinician_review_template_states_pending_review() -> None:
     text = clinician_review_template(None)
     assert "review" in text.lower()
+
+
+def test_language_limitation_template_states_the_limitation_in_english() -> None:
+    # Case 16: a stated limitation, not a refusal and not an attempt to answer
+    # in another language (§6.1, Section 1557 language access).
+    text = language_limitation_template()
+    assert "english" in text.lower()
+    assert "refuse" not in text.lower()
 
 
 def test_render_template_dispatches_all_four() -> None:

@@ -1177,13 +1177,13 @@ Four closed on 2026-08-20 (§14). What remains is confirmation, not design.
 | # | Question | Status |
 |---|---|---|
 | 1 | ✅ **Closed — A3 proceeds now**, ahead of A6. `S`/`L` are the build-effort sizes in portfolio §6; A6 was scheduled first only to isolate template friction, an argument that weakened once A2 proved the template | §0.2 |
-| 2 | **X2/X3/X5 extraction** — during A3 or after? | Recommend after (§0.3). `docs/HARVEST.md` is being kept from Phase 0 so the extraction has a real input |
-| 3 | **Stage 2 out of scope for now?** | Recommend yes — blocked on X1 and A4 regardless |
+| 2 | ✅ **Closed — after, and not yet.** `base` shipped without migrating onto `zarreh-agentkit` (X2); `docs/HARVEST.md` carries the extraction candidates as the real input for whenever that migration happens | §0.3 |
+| 3 | ✅ **Closed — yes, out of scope for `base`.** Stage 2 remains gated on X1 and A4, per §7 Stretch | §7 |
 | 4 | ✅ **Closed — real citations.** MedlinePlus + RxNav, free and key-less; LOINC table designed out; gaps declared rather than filled | §4.2, D-A3-4 |
-| 5 | **Repo name / package** — `clinical_care_navigator` / `navigator` | Adopted in Phase 0; say so if it should change |
-| 6 | **Infra** — is `clinical.zarreh.ai` DNS + the A2 Caddy setup reusable as-is? | Assumed yes; not yet exercised |
+| 5 | ✅ **Closed — kept.** `clinical_care_navigator` / `navigator`, unchanged since Phase 0 | — |
+| 6 | **Infra** — is `clinical.zarreh.ai` DNS + the A2 Caddy setup reusable as-is? | Still not exercised — no deployment target exists yet for either A2 or A3; deferred with both |
 | 7 | ✅ **Closed — no clinician review assumed.** Ship on published-source derivation with per-rule URLs; the absence of review is disclosed in the docs | §4.4, §10.2 |
-| 8 | **Review queue auth** — unauthenticated reviewer page behind a deployment control, acceptable for a demo? | Recommend yes for `base`; auth is Stage 2 |
+| 8 | ✅ **Closed — yes, unauthenticated for `base`.** The reviewer page ships without auth; multi-tenancy and auth are Stage 2 | §9 (out of scope) |
 | 9 | ✅ **Closed — layer-2 labelling confirmed.** ~150 questions to start, grown over time; *n* and confidence intervals on every published figure | §4.5, §10.8 |
 
 ---
@@ -1358,3 +1358,64 @@ anything. Frontend `npm run build` and `tsc --noEmit` clean; 8 Playwright specs
 pass; the Python `make check` stays green (ruff, mypy --strict, 4 import-linter
 contracts, 169 tests) and `mkdocs build --strict` is clean with the new
 [watch it work](how-it-works/watch-it-work.md) walkthrough.
+
+
+**2026-09-25 — Phase 8 (evals) built.** Two guardrail gaps closed first, since
+canonical cases 7 and 16 had no implementation: `tools/injection_scan.py`
+scans retrieved note content for an instruction-shaped payload and records a
+`suspected_indirect_injection` `SecurityEvent`, without altering or
+withholding the content (case 7); `guardrails/language.py` detects a
+non-English question and routes it to a stated-limitation template with zero
+patient tool calls (case 16). Then the Layer 1 harness: `evals/oracle.py`
+(a fixed classification and tool-call script per case, generic answer
+writer/claim extractor/scope judge — the same discipline as A2's oracle, for
+the same reason), `evals/canonical.py` (builds the real graph against the
+committed `tests/fixtures/seed.json`, runs all 16 cases as 18 runs — case 5
+once per autonomy level — against a per-case expectation), `evals/metrics.py`
+(pass/fail plus cost/latency percentiles; `wilson_interval` for Layer 2, unused
+until real labelling exists), and `evals/red_flag_probes.py` (15 committed
+phrasings scoring the deterministic screen alone: positives, expected-miss
+metaphors, and suppressed negations/attributions).
+
+| Change | Origin |
+|---|---|
+| `tests/fixtures/seed.json` was missing an A1c (LOINC 4548-4) observation entirely, even though it already carried the critical-potassium fixture for the same patient and a reference-range row for that code — restored with one committed observation row so `data.scenarios.bind()` can resolve cases 1, 15 and 16 against the offline fixture | Implementation finding, fixed |
+| `data.scenarios.bind()` is idempotent and designed to be called by the eval harness itself (its own docstring says so) — the harness calls it directly against the fixture-built store rather than hand-deriving patient bindings | Design requirement |
+| The oracle's per-case intent classifications were checked against what the *real* deterministic rule screen decides for each case's literal question text, so `layer_agreement` stays a meaningful signal rather than an artifact of a careless oracle | Design requirement, verified by test |
+| Sabotage test: flipping `CRITICAL_VALUE_ACTION` to `"allow"` made `make eval` exit non-zero with case 4 failing (pass rate 94.44%) — proof the gate is real, not merely present | Verified directly |
+| `docs/generate_plots.py` gained chart 2 (screen recall on the red-flag probe set, with expected metaphor misses shown as the point, not a regression); the CI drift check (`tests/docs/test_chart_determinism.py`) already covered the new chart via its `*.svg` glob, with no change needed | Design requirement, verified by test |
+
+Exit criteria verified: `make eval` prints an 18-row matrix with *n*, label
+source and the oracle disclosure, and exits 0; `docs/evidence/evaluation.md`
+states Layer 1's real result and Layer 2's "not populated" status honestly,
+with no fabricated rate. `make check` green (ruff, mypy --strict over the
+whole tree including `data`/`evals`/`tests`, 4 import-linter contracts, 190
+tests) and `mkdocs build --strict` clean.
+
+
+**2026-09-25 — Phase 9 (docs, credibility) built.** `docs/regulatory-basis.md`
+expanded from a plan-of-record table into delivered content: the FDA CDS
+device-exclusion argument (already present) plus HIPAA minimum necessary (45
+CFR 164.502(b)), Safe Harbor de-identification (45 CFR 164.514(b)), ONC
+information blocking (45 CFR Part 171), Section 1557 language access (tied
+directly to case 16's stated-limitation path), the 988 crisis path, and a
+rule-by-rule citation table for every red-flag category. Six ADR files
+(`D-A3-1` through `D-A3-6`) written under `docs/architecture/decisions/` and
+wired into the nav, mirroring A2's Status/Context/Decision/Consequences
+format. Every API response envelope (`api/schemas.py`) gained a `disclaimer`
+field carrying the §6.2 banner text, and the docs site gained a Material
+announcement bar (`overrides/main.html`, `theme.custom_dir`) so the banner is
+on every page, not only the frontend. `docs/PORTFOLIO_CARD_DRAFT.md` and
+`docs/WRITING_POST_DRAFT.md` staged, mirroring A2's drafts.
+
+| Change | Origin |
+|---|---|
+| The `disclaimer` field has a Pydantic default, so every existing response-construction call site picked it up with no code change beyond the schema — only the tests needed a new assertion | Implementation finding |
+| Frontend types (`frontend/openapi.json`, `src/lib/api-types.ts`) regenerated from the changed schema; `npm run build`, `tsc --noEmit` and all 11 Playwright specs re-verified clean | Exit criterion, verified by test |
+| The announcement bar is a first occurrence in this portfolio (A2 has none) — logged in `HARVEST.md` as an X5 `zarreh-docs-theme` candidate | Design requirement |
+
+Exit criteria verified: `mkdocs build --strict` clean with the new ADR pages,
+expanded regulatory basis, and announcement bar; `make check` still green
+(190 tests); the frontend build and Playwright suite still pass. README
+Status rewritten from the stale "Phase 0 in progress" table to the real
+build state, with a "not done, deliberately deferred" list mirroring A2's.

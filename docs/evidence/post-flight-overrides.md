@@ -30,9 +30,8 @@ Only the critical-value bar is a measured property of the population. The other
 three are run through the **real** post-flight node against a small, committed
 battery of crafted drafts — enough to prove each trigger fires and routes
 correctly, but deliberately **not** presented as a base rate. A trigger rate
-over real traffic is an evaluation question, and it is answered in Phase 8 with
-the same discipline the [evaluation metrics](evaluation.md) already follow: a
-count is never shown without the sample it came from.
+over real traffic is a Layer 2 question ([evaluation](evaluation.md)), not
+populated yet — a count is never shown without the sample it came from.
 
 The honest read of this chart is therefore *mechanism*, not *frequency*: every
 override path exists, is reachable, and lands on the right disposition.

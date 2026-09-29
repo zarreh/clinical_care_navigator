@@ -46,6 +46,7 @@ def _decide(
     policy_rules: list[PolicyRule],
     registry: ToolRegistry,
     autonomy_level: AutonomyLevel = "L2_balanced",
+    question_language: str = "en",
 ) -> PolicyDecision:
     return resolve_policy(
         question,
@@ -56,6 +57,7 @@ def _decide(
         registry=registry,
         autonomy_level=autonomy_level,
         row_cap=ROW_CAP,
+        question_language=question_language,
     )
 
 
@@ -159,6 +161,53 @@ def test_case13_self_harm_is_crisis_not_emergency(
     )
     assert decision.action == "crisis"
     assert decision.template_id == "crisis_988"
+
+
+def test_case16_spanish_question_is_out_of_scope_with_no_patient_tools(
+    rule_engine: RuleEngine, policy_rules: list[PolicyRule], registry: ToolRegistry
+) -> None:
+    decision = _decide(
+        "\u00bfQu\u00e9 significa mi resultado de A1c?",
+        _assess("lab_education", span="A1c"),
+        rule_engine,
+        policy_rules,
+        registry,
+        question_language="es",
+    )
+    assert decision.action == "out_of_scope"
+    assert decision.language_limitation is True
+    assert not (decision.tool_scope.allowed_tool_names & registry.patient_scoped_names)
+
+
+def test_case16_english_question_is_not_flagged_as_language_limited(
+    rule_engine: RuleEngine, policy_rules: list[PolicyRule], registry: ToolRegistry
+) -> None:
+    decision = _decide(
+        "What does my A1c of 7.8 mean?",
+        _assess("lab_education", span="A1c"),
+        rule_engine,
+        policy_rules,
+        registry,
+        question_language="en",
+    )
+    assert decision.language_limitation is False
+
+
+def test_non_english_emergency_still_escalates_to_emergency_care(
+    rule_engine: RuleEngine, policy_rules: list[PolicyRule], registry: ToolRegistry
+) -> None:
+    # The language check must never displace a more restrictive decision
+    # already reached by either pre-flight layer.
+    decision = _decide(
+        "Crushing chest pain",
+        _assess("red_flag", (("cardiac", "chest pain"),), "chest pain"),
+        rule_engine,
+        policy_rules,
+        registry,
+        question_language="es",
+    )
+    assert decision.action == "direct_to_emergency_care"
+    assert decision.language_limitation is False
 
 
 # --- exit criteria ----------------------------------------------------------

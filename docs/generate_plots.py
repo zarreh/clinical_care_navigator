@@ -14,7 +14,11 @@ larger sample than it had would be the same failure as an eval metric published
 without its sample size (§8).
 
 Phase 1 produces chart 8 (record-store profile, with education-source coverage).
-Charts 1–7 need eval output and arrive in Phase 8.
+Chart 2 (screen recall on the red-flag probe set) arrives in Phase 8, from
+`evals/red_flag_probes.py` -- a fixed, committed probe set, not a live-model
+sample, so it is exact rather than a rate with a confidence interval (§4.5).
+Charts 1, 3, 5, 6 and 7 need Layer 2 -- a real labelled sample against a pinned
+model version -- and are not populated (docs/evidence/evaluation.md).
 """
 
 from __future__ import annotations
@@ -355,6 +359,69 @@ def post_flight_overrides(store: RecordStore, records: sqlite3.Connection) -> No
     _save(fig, "post-flight-overrides")
 
 
+def red_flag_screen_recall() -> None:
+    """Chart 2: screen recall on the committed red-flag probe set (§6.3 #2).
+
+    Three groups, because the deterministic screen has one job and two
+    deliberate non-jobs. **Positive** phrasings are what it exists to catch, and
+    every miss is listed on the page individually (§8) rather than folded into a
+    single rate. **Metaphor** phrasings are *expected* misses -- canonical case
+    11 -- so a bar under 100% there is the point, not a regression: it is why
+    the classifier layer exists at all. **Suppressed** phrasings are red-flag
+    language under negation or attribution -- case 12 -- and must stay at 100%,
+    since a screen that cannot tell "no chest pain" from chest pain is not a
+    guardrail (§3.2).
+    """
+    from evals.red_flag_probes import run_probes
+
+    scored = run_probes()
+    groups = ["positive", "metaphor", "suppressed"]
+    correct = {group: 0 for group in groups}
+    total = {group: 0 for group in groups}
+    misses: list[str] = []
+    for probe, fired in scored:
+        total[probe.group] += 1
+        if fired == probe.should_fire:
+            correct[probe.group] += 1
+        elif probe.group == "positive":
+            misses.append(f"[{probe.category}] {probe.text!r}")
+
+    labels = ["Positive\n(should fire)", "Metaphor\n(expected miss)", "Suppressed\n(must not fire)"]
+    shares = [correct[g] / total[g] if total[g] else 0.0 for g in groups]
+    colors = [IN_RANGE if g != "metaphor" else OUT_OF_RANGE for g in groups]
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    bars = ax.bar(labels, shares, color=colors)
+    for rect, group in zip(bars, groups, strict=True):
+        ax.text(
+            rect.get_x() + rect.get_width() / 2,
+            rect.get_height(),
+            f" {correct[group]}/{total[group]}",
+            ha="center",
+            va="bottom",
+            fontsize=10,
+        )
+    ax.set_ylim(0, 1.15)
+    ax.set_ylabel("Share matching the documented expectation")
+    n = sum(total.values())
+    ax.set_title(
+        f"Deterministic screen vs. the committed probe set (n={n} probes, fixed, "
+        "not a live-model sample)",
+        fontsize=9,
+    )
+    fig.suptitle("Screen recall, and its two deliberate blind spots", fontweight="bold")
+    if misses:
+        fig.text(
+            0.02,
+            0.01,
+            "Missed positives: " + "; ".join(misses),
+            fontsize=7,
+            color=CRITICAL,
+        )
+    fig.tight_layout(rect=(0, 0.05, 1, 1))
+    _save(fig, "red-flag-screen-recall")
+
+
 def main() -> int:
     matplotlib.rcParams["svg.hashsalt"] = "clinical-care-navigator"
     plt.style.use(STYLE_PATH)
@@ -366,6 +433,7 @@ def main() -> int:
         try:
             record_store_profile(records, education)
             post_flight_overrides(store, records)
+            red_flag_screen_recall()
         finally:
             store.close()
             records.close()

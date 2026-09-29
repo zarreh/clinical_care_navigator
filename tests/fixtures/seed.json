@@ -216,6 +216,19 @@
    "numeric"
   ],
   [
+   "obs-fixture-00bcbfc6-a1c",
+   "00bcbfc6-c7b9-bd0e-3d95-071f9fba6321",
+   "00bcbfc6-c7b9-bd0e-1c1e-c72a7208dbd4",
+   "2018-05-15",
+   "laboratory",
+   "4548-4",
+   "Hemoglobin A1c/Hemoglobin.total in Blood",
+   7.8,
+   null,
+   "%",
+   "numeric"
+  ],
+  [
    "obs-24aa8a5f0cb2d656",
    "00bcbfc6-c7b9-bd0e-3d95-071f9fba6321",
    "00bcbfc6-c7b9-bd0e-8348-0d1533af3cc7",

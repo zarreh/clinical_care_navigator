@@ -34,6 +34,8 @@ from langchain_core.messages.tool import ToolCall
 from pydantic import BaseModel
 
 from navigator.schemas.scoping import EvidenceRecord, SecurityEvent, ToolScope
+from navigator.schemas.tools import ClinicalNotesResult
+from navigator.tools.injection_scan import scan_for_injection
 from navigator.tools.registry import ToolRegistry
 
 
@@ -152,6 +154,22 @@ class ScopedToolExecutor:
                 retrieved_at=self._now(),
             )
         )
+        # 6. Scan retrieved note content for an instruction-shaped payload. The
+        # content is not altered or withheld -- it still reaches the model
+        # unchanged -- this only records that the attempt was seen (case 7).
+        if isinstance(model, ClinicalNotesResult):
+            for note in model.notes:
+                if scan_for_injection(note.body):
+                    out.security_events.append(
+                        SecurityEvent(
+                            kind="suspected_indirect_injection",
+                            tool_name=name,
+                            requested=note.note_id,
+                            enforced="treated_as_data",
+                            run_id=run_id,
+                            at=self._now(),
+                        )
+                    )
         out.messages.append(
             ToolMessage(content=model.model_dump_json(), name=name, tool_call_id=call_id)
         )

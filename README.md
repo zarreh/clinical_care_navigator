@@ -46,22 +46,40 @@ graph TD
 
 ## Status
 
-**Phase 0 — template transplant.** Walking skeleton only. See
-`docs/PLAN.md` for the full build plan and
-`docs/PLAN.md` §7 for phase-by-phase exit criteria.
+**The `base` build (docs/PLAN.md phases 0–9) is complete.** The guardrail
+sandwich — pre-flight gate, scoped executor, post-flight checks, deterministic
+publication — runs end to end with a FastAPI + SSE API, a durable review
+queue that genuinely suspends and resumes a run, a Next.js frontend with 11
+Playwright specs, a canonical evaluation harness gating pull requests, and a
+documentation site. Quality gates (ruff, mypy --strict, import-linter,
+pytest, `make eval`, `mkdocs build --strict`) are green on every commit.
 
-| Phase | State |
-|---|---|
-| 0 · Template transplant | in progress |
-| 1 · Data foundation | not started |
-| 2 · Tools and scoping | not started |
-| 3 · Pre-flight gate | not started |
-| 4 · Agent core and draft | not started |
-| 5 · Post-flight ★ | not started |
-| 6 · API, persistence, observability | not started |
-| 7 · Frontend | not started |
-| 8 · Evals | not started |
-| 9 · Docs, credibility, launch | not started |
+**Not done, deliberately deferred** (see
+[docs/architecture/decisions/](docs/architecture/decisions/index.md) and
+`docs/PLAN.md` §7 Stretch for the reasoning on each):
+
+- Live public deployment (`clinical.zarreh.ai` DNS/VPS) — infrastructure
+  access not available while building this.
+- **Layer 2 stratified evaluation** (~150 hand-labelled cases, published
+  metrics with a confidence interval) — needs a live LLM and real human
+  labelling effort; see `docs/evidence/evaluation.md`. The harness for it
+  (`evals/metrics.py::wilson_interval`) is ready.
+- Recorded live-model responses for Layer 1 (currently a deterministic
+  oracle, `evals/oracle.py`, for the same reason A2 uses one) —
+  `evals/record_responses.py`, not yet written.
+- Real per-node latency and token cost (`docs/evidence/guardrail-cost.md`) —
+  needs a live LLM; the oracle's cost is always $0.0000 by construction.
+- The `pro` tier (governance dashboard, red-team suite, autonomy A/B, offline
+  mode, Spanish) — gated on X1 and A4 per the portfolio plan.
+- Migrating onto `zarreh-agentkit` (X2) — A2 already uses it; this repo does
+  not yet.
+- The shared portfolio-wide site (`/writing`, `/methodology`, the per-app
+  card grid) doesn't exist yet outside this repo; draft content for this
+  app's card and its `/writing` post are staged in `docs/` pending it.
+
+This is an architectural demonstration on fully synthetic
+[Synthea](https://github.com/synthetichealth/synthea) data. It is **not**
+a medical device, does not diagnose, and is not a substitute for care.
 
 ## Run it
 
@@ -71,6 +89,7 @@ cp .env.example .env      # add NAVIGATOR_OPENAI_API_KEY
 make data                 # build the synthetic record + education stores
 make dev                  # http://localhost:8000/healthz
 make check                # ruff, mypy --strict, import-linter, pytest
+make eval                 # Layer 1 canonical eval (18 runs, gates PRs)
 ```
 
 ## Licence and provenance

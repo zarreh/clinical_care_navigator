@@ -1,16 +1,18 @@
 """Layer 1 canonical regression runner (docs/PLAN.md §4.5).
 
-Phase 0 ships the entry point so `make eval` and the CI gate exist from the
-start; the sixteen canonical cases arrive with the phases that make each of them
-meaningful.
+Gates PR CI: exits non-zero if any of the 18 canonical runs doesn't match its
+expected behaviour (docs/PLAN.md §4.5, §7 Phase 8).
 """
 
 import sys
 
+from evals.canonical import print_matrix, run_canonical_eval
+
 
 def main() -> int:
-    print("Layer 1 canonical eval — 0 cases registered (Phase 0 skeleton).")
-    return 0
+    results, report = run_canonical_eval()
+    print_matrix(results, report)
+    return 0 if all(r.ok for r in results) else 1
 
 
 if __name__ == "__main__":

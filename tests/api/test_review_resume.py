@@ -33,10 +33,15 @@ def test_review_resume_approve_publishes_unchanged(tmp_path: Path) -> None:
     assert len(reviews) == 1
     review = reviews[0]
     assert review["run_id"] == run_id
+    assert review["disclaimer"] == (
+        "Architectural demonstration on fully synthetic data. Not a medical device. "
+        "Does not diagnose. Not a substitute for care."
+    )
 
     decision = ctx.client.post(f"/reviews/{review['id']}/decision", json={"action": "approve"})
     assert decision.status_code == 200
     assert decision.json()["run_status"] == "answered"
+    assert decision.json()["disclaimer"]
 
     answered = ctx.client.get(f"/conversations/{run_id}").json()
     assert answered["status"] == "answered"

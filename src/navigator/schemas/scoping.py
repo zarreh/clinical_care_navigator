@@ -28,6 +28,7 @@ SecurityEventKind = Literal[
     "cross_patient_overwrite",
     "blocked_unknown_tool",
     "out_of_scope_tool",
+    "suspected_indirect_injection",
 ]
 
 
