@@ -13,12 +13,32 @@ leak an identifier into a log line by forgetting to redact at the call site.
 
 from __future__ import annotations
 
+from functools import lru_cache
+
 import structlog
+from langchain_core.callbacks import BaseCallbackHandler
+from langsmith import Client
 from zarreh_agentkit.observability import get_logger as get_logger
 
 from navigator.guardrails.redaction import PhiRedactor, redacting_processor
 
-__all__ = ["configure_logging", "get_logger"]
+__all__ = ["build_tracing_callbacks", "configure_logging", "get_logger"]
+
+
+@lru_cache
+def _langsmith_client(api_key: str) -> Client:
+    return Client(api_key=api_key)
+
+
+def build_tracing_callbacks(api_key: str, project: str) -> list[BaseCallbackHandler]:
+    """Tracer bound to the configured key. The agentkit version relies on an
+    ambient LANGSMITH_API_KEY, which pydantic's `.env` loading never exports,
+    so every trace upload was rejected with a 401."""
+    if not api_key:
+        return []
+    from langchain_core.tracers.langchain import LangChainTracer
+
+    return [LangChainTracer(project_name=project, client=_langsmith_client(api_key))]
 
 
 def configure_logging(environment: str, redactor: PhiRedactor | None = None) -> None:

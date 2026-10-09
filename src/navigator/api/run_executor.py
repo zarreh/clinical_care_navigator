@@ -24,12 +24,11 @@ from langchain_core.callbacks.base import BaseCallbackHandler
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import Command
 from pydantic import BaseModel
-from zarreh_agentkit.observability import build_tracing_callbacks
 
 from navigator.graph.builder import NavigatorGraph
 from navigator.graph.cost_tracking import CostTrackingHandler
 from navigator.graph.state import NavigatorState
-from navigator.observability import get_logger
+from navigator.observability import build_tracing_callbacks, get_logger
 from navigator.schemas.answer import PatientAnswer
 from navigator.settings import Settings
 from navigator.store.models import ReviewItem
