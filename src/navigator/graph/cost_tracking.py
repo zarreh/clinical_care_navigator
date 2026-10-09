@@ -5,6 +5,8 @@ metadata, so one callback attached to the whole graph invocation attributes each
 call's tokens back to the node that made it — no manual plumbing through node
 code. Kept local rather than pulled from a shared kit (§0.3): a cost meter is
 small enough to own, and owning it keeps the price table honest and in view.
+zarreh_agentkit.cost (v0.2.0) must not replace it until it reads the node from
+the start event, falls back to usage_metadata and prices dated model names.
 
 The prices are approximate list prices for the estimate shown on the cost meter,
 not a billing-grade figure — real prices change often and are not the point.

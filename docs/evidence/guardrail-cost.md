@@ -1,6 +1,10 @@
 # Guardrail cost
 
-*Arrives in Phase 8.*
+!!! warning "Not populated"
+    Real per-node latency and token cost need a live LLM -- `evals/canonical.py`
+    stands in a deterministic oracle for exactly that reason, so its cost is
+    always $0.0000 (see `docs/evidence/evaluation.md`). The table below is
+    the design, not a measurement; it fills in once A3 has a live key.
 
 "What does all this safety cost me?" is the second question every buyer asks, and
 it usually gets an opinion for an answer. This page gives it a number: added p50

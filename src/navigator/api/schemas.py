@@ -8,6 +8,13 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+# §6.2: a persistent banner on every page *and every API response envelope*.
+# One constant, one place, so the frontend and the docs quote the same wording.
+DISCLAIMER = (
+    "Architectural demonstration on fully synthetic data. Not a medical device. "
+    "Does not diagnose. Not a substitute for care."
+)
+
 
 class CreateConversationRequest(BaseModel):
     question: str = Field(min_length=1, max_length=2_000)
@@ -19,6 +26,7 @@ class CreateConversationRequest(BaseModel):
 class CreateConversationResponse(BaseModel):
     id: str
     status: str
+    disclaimer: str = DISCLAIMER
 
 
 class CostSummaryEntry(BaseModel):
@@ -41,6 +49,7 @@ class ConversationResponse(BaseModel):
     error: str | None
     total_cost_usd: float
     costs: list[CostSummaryEntry]
+    disclaimer: str = DISCLAIMER
 
 
 class ReviewSummary(BaseModel):
@@ -52,6 +61,7 @@ class ReviewSummary(BaseModel):
     body: str
     status: str
     created_at: str
+    disclaimer: str = DISCLAIMER
 
 
 class ReviewDecisionRequest(BaseModel):
@@ -65,3 +75,4 @@ class ReviewDecisionResponse(BaseModel):
     run_id: str
     action: str
     run_status: str
+    disclaimer: str = DISCLAIMER

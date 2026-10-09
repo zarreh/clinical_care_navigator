@@ -124,7 +124,9 @@ class PolicyDecision(BaseModel):
     landed on the same action; the disagreement rate is itself a published number
     (§5.2). `tool_scope` is the registry the run is bound to — for any non-`allow`
     action it excludes every patient tool, so refusal short-circuits before PHI
-    is touched (§3.3).
+    is touched (§3.3). `language_limitation` marks a run routed by the question's
+    detected language rather than by a rule or the classifier — canonical case
+    16 (§5.2), a stated limitation rather than a silent mistranslation.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -136,3 +138,4 @@ class PolicyDecision(BaseModel):
     tool_scope: ToolScope
     autonomy_level: str
     template_id: str | None = None
+    language_limitation: bool = False

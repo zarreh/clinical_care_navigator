@@ -10,9 +10,12 @@ exclude_docs: |
   HARVEST.md
   generate_plots.py
   assets/plot_style.mplstyle
+  PORTFOLIO_CARD_DRAFT.md
+  WRITING_POST_DRAFT.md
 
 theme:
   name: material
+  custom_dir: overrides
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
@@ -80,6 +83,12 @@ nav:
       - State and flow: architecture/state-and-flow.md
       - Decisions:
           - Index: architecture/decisions/index.md
+          - D-A3-1 The sandwich has two independent halves: architecture/decisions/D-A3-1-the-sandwich-has-two-independent-halves.md
+          - D-A3-2 Substring matching is not a guardrail: architecture/decisions/D-A3-2-substring-matching-is-not-a-guardrail.md
+          - D-A3-3 Autonomy is a band boundary: architecture/decisions/D-A3-3-autonomy-is-a-band-boundary-not-a-free-knob.md
+          - D-A3-4 Citations are real: architecture/decisions/D-A3-4-citations-are-real-and-that-is-free.md
+          - D-A3-5 Exact lookup before semantic search: architecture/decisions/D-A3-5-exact-lookup-before-semantic-search.md
+          - D-A3-6 Publication is deterministic: architecture/decisions/D-A3-6-publication-is-deterministic-and-refusals-short-circuit.md
   - Evidence:
       - Evaluation: evidence/evaluation.md
       - Over- and under-refusal: evidence/over-and-under-refusal.md

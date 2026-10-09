@@ -80,11 +80,14 @@ def resolve_policy(
     registry: ToolRegistry,
     autonomy_level: AutonomyLevel,
     row_cap: int,
+    question_language: str = "en",
 ) -> PolicyDecision:
     """Combine the rule screen and the intent assessment into one decision.
 
     `firing` is the rule engine's firing matches; `all_matches` includes the
     negated/attributed ones, recorded on the decision for auditability.
+    `question_language` is the detected language of the question itself
+    (canonical case 16) -- distinct from the patient's stored profile language.
     """
     rules_by_id = {rule.rule_id: rule for rule in rules}
     screen = _screen_decision(firing, rules_by_id)
@@ -102,6 +105,15 @@ def resolve_policy(
         else:
             combined_action, classified_band = classifier_action, classifier_band
         layer_agreement = screen_action == classifier_action
+
+    # A non-English question routes to the stated-limitation template rather
+    # than the investigate loop (case 16) -- but only when nothing else has
+    # already decided something more restrictive, so an emergency or crisis
+    # detected by either layer is never displaced by this check.
+    language_limitation = False
+    if question_language != "en" and combined_action == "allow":
+        combined_action, classified_band = "out_of_scope", "inform"
+        language_limitation = True
 
     # Apply the autonomy band boundary. It moves only the answer-vs-review
     # boundary (allow <-> clinician_review); an explicit out_of_scope refusal or
@@ -129,4 +141,5 @@ def resolve_policy(
         tool_scope=scope,
         autonomy_level=autonomy_level,
         template_id=template_id if action != "allow" else None,
+        language_limitation=language_limitation,
     )

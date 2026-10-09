@@ -132,6 +132,20 @@ _TEMPLATES = {
 }
 
 
+def language_limitation_template() -> str:
+    """Case 16: a stated limitation, not a silent mistranslation or a refusal.
+
+    The reply stays in English on purpose -- Stage 1 does not attempt to answer
+    in another language, and saying so plainly is safer than answering badly
+    (docs/PLAN.md §6.1, Section 1557 language access).
+    """
+    return (
+        "I can currently only work reliably in English, and I'd rather say that "
+        "plainly than risk answering incorrectly. Please message your care team "
+        "through the portal, or ask again in English and I'll be glad to help."
+    )
+
+
 def render_template(action: str, rule: PolicyRule | None) -> str:
     """Render the templated response for a non-`allow` action."""
     return _TEMPLATES[action](rule)

@@ -43,11 +43,6 @@ from navigator.store import RecordStore, ReviewQueue, RunStore
 
 router = APIRouter(prefix="/conversations", tags=["conversations"])
 
-DISCLAIMER = (
-    "Architectural demonstration on fully synthetic data. Not a medical device. "
-    "Does not diagnose. Not a substitute for care."
-)
-
 
 def _resolve_patient_id(
     requested: str | None, settings: Settings, record_store: RecordStore

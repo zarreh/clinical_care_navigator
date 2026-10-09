@@ -33,6 +33,7 @@ def build_resolve_policy_node(
             registry=registry,
             autonomy_level=state["autonomy_level"],  # type: ignore[arg-type]
             row_cap=row_cap,
+            question_language=state.get("question_language", "en"),
         )
         return {"policy_decision": decision}
 

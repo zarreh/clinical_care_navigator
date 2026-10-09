@@ -1,8 +1,5 @@
 # Regulatory basis
 
-*Completed in Phase 9, with every claim cited to a primary source. This page is
-the plan of record for what it will cover.*
-
 !!! danger "Scope of this document"
     This page explains the regulatory reasoning behind the system's **design**.
     It is not legal or regulatory advice, and this system is not a medical
@@ -10,38 +7,108 @@ the plan of record for what it will cover.*
 
 ## The design constraint that shaped the architecture
 
-The 21st Century Cures Act §3060 excludes certain clinical decision support
-software from the medical device definition, and FDA's 2022 *Clinical Decision
-Support Software* guidance interprets it. One criterion is that the software
-enables the user to **independently review the basis** for its output rather
-than relying primarily on it.
+The [21st Century Cures Act §3060](https://www.govinfo.gov/content/pkg/PLAW-114publ255/pdf/PLAW-114publ255.pdf)
+excludes certain clinical decision support (CDS) software from the medical
+device definition, and the FDA's
+[*Clinical Decision Support Software* guidance (September 2022)](https://www.fda.gov/regulatory-information/search-fda-guidance-documents/clinical-decision-support-software)
+interprets it. Non-device CDS must, among other criteria, enable the user to
+**independently review the basis** for its output rather than relying
+primarily on it, and must not acquire, process or analyze a medical image or
+signal.
 
 That criterion is why:
 
 - every clinical claim carries a citation, and coverage is **measured and
-  enforced** rather than requested in a prompt;
-- citations point at real public-domain pages a patient can actually open — a
-  citation that cannot be independently reviewed satisfies nothing;
-- reference ranges are **quoted** rather than interpreted;
-- the answer shows which record rows it read;
-- the system directs to care rather than characterising urgency.
+  enforced** in `guardrails/citation_check.py` rather than requested in a
+  prompt (`docs/architecture/decisions/D-A3-1-the-sandwich-has-two-independent-halves.md`);
+- citations point at real public-domain pages a patient can actually open
+  (`docs/architecture/decisions/D-A3-4-citations-are-real-and-that-is-free.md`)
+  — a citation that cannot be independently reviewed satisfies nothing;
+- reference ranges are **quoted** rather than interpreted (`store/models.py::ReferenceRange`);
+- the answer shows which record rows it read (`schemas/answer.py::Claim.evidence_refs`);
+- the system directs to care rather than characterising urgency
+  (`guardrails/templates.py`) — it never says "you are having a heart attack",
+  it says "seek emergency care now".
 
 Citation coverage is therefore not a quality metric here. It is a design
-constraint traceable to a named criterion.
+constraint traceable to a named criterion, and being able to point at the code
+that enforces it is a stronger position than any amount of domain vocabulary.
 
-## What this page will cover
+## HIPAA minimum necessary — 45 CFR 164.502(b)
 
-| Topic | Where it lands in the build |
-|---|---|
-| **FDA CDS guidance (Sept 2022)** + Cures Act §3060 | Citation coverage, reviewable sources, range quoting, non-characterisation of urgency — and an explicit statement of why this design stays outside the device definition |
-| **HIPAA minimum necessary** — 45 CFR 164.502(b) | Tool scoping, row caps, and refusals short-circuiting *before* retrieval |
-| **HIPAA Safe Harbor de-identification** — 45 CFR 164.514(b) | The 18 identifiers, and the statement that Synthea data is synthetic and therefore not PHI at all |
-| **ONC information blocking / Cures Act Final Rule** | Why patient-facing record access exists |
-| **Section 1557** language access | Why literacy and language handling matter, and why Spanish is honestly deferred rather than faked |
-| **988 Suicide & Crisis Lifeline** | The crisis path and its distinct template |
-| Red-flag provenance | Rule by rule, with URLs |
-| Reference-range provenance | Stated as illustrative and adult-general |
-| MedlinePlus / RxNorm / LOINC attribution | Also in `NOTICE.md` |
+The [minimum-necessary standard](https://www.hhs.gov/hipaa/for-professionals/privacy/guidance/minimum-necessary-requirement/index.html)
+requires limiting use, disclosure and request of protected health information
+to what is reasonably necessary for the purpose. Two controls implement this
+directly, not as a prompt instruction:
+
+- **Refusals short-circuit before retrieval.** Any non-`allow` pre-flight
+  decision binds `registry.education_only_scope()`, from which every
+  patient-scoped tool is *absent* (`tools/registry.py`,
+  `docs/architecture/decisions/D-A3-6-publication-is-deterministic-and-refusals-short-circuit.md`).
+  A refused or escalated question never reaches a patient record.
+- **Row caps.** `ScopedToolExecutor` clamps every `limit` argument to the
+  scope's `row_cap` regardless of what the model requests (`tools/scoping.py`),
+  so a run cannot pull more of the record than the scope allows.
+
+## HIPAA Safe Harbor de-identification — 45 CFR 164.514(b)
+
+[Safe Harbor](https://www.hhs.gov/hipaa/for-professionals/privacy/special-topics/de-identification/index.html)
+lists 18 identifier categories that must be removed for data to be considered
+de-identified. This system never reaches that question in the first place:
+every patient record is generated by [Synthea](https://github.com/synthetichealth/synthea)
+(Apache-2.0), a synthetic-patient-population simulator. There is no real or
+re-identifiable individual behind any record this system reads, and there is
+no configuration path to point it at real data.
+
+## ONC information blocking / 21st Century Cures Act Final Rule
+
+The [Cures Act Final Rule (45 CFR Part 171)](https://www.healthit.gov/topic/information-blocking)
+establishes that patients are entitled to their own electronic health
+information without unreasonable delay or interference. This is the
+regulatory reason a patient-facing record-access assistant exists as a
+category at all — the system's *base* tier (record lookup, lab and
+medication education) is squarely inside what the rule intends patients to be
+able to get.
+
+## Section 1557 language access — 42 U.S.C. §18116 / 45 CFR Part 92
+
+The [ACA §1557 language-access requirements](https://www.hhs.gov/civil-rights/for-individuals/section-1557/index.html)
+require meaningful access for people with limited English proficiency. This
+is why a non-English question is not silently answered badly: canonical case
+16 detects the question's language (`guardrails/language.py`) and responds
+with a **stated limitation** in English plus a route to the care team
+(`guardrails/templates.py::language_limitation_template`), rather than either
+guessing at a translation or refusing outright. `base` does not yet answer in
+Spanish; that is an honest, disclosed limitation, not a silent failure, and
+full language support is deferred to Stage 2 (`docs/PLAN.md` §7 Stretch).
+
+## The crisis path — 988 Suicide & Crisis Lifeline
+
+A self-harm red flag routes to a **dedicated crisis path**
+(`guardrails/templates.py::crisis_template`), distinct from the medical
+emergency path in both resource and wording (`docs/PLAN.md` §4.4):
+the [988 Suicide & Crisis Lifeline](https://988lifeline.org/) is available
+24/7 by call or text, and is named explicitly rather than folded into a
+generic "seek care" message.
+
+## Red-flag rules, cited rule by rule
+
+Every escalation rule cites a real, public-domain patient-facing source, and
+the build fails if an escalation rule is added without one
+(`data/generate_policy_rules.py::validate`):
+
+| Category | Rules | Source |
+|---|---|---|
+| Cardiac | `rf-cardiac-chest-pain`, `rf-cardiac-radiating`, `rf-cardiac-associated` | [MedlinePlus — Heart Attack](https://medlineplus.gov/heartattack.html) |
+| Stroke | `rf-stroke-face-arm-speech`, `rf-stroke-sudden-neuro` | [MedlinePlus — Stroke](https://medlineplus.gov/stroke.html) |
+| Anaphylaxis | `rf-anaphylaxis` | [MedlinePlus — Anaphylaxis](https://medlineplus.gov/anaphylaxis.html) |
+| Self-harm | `rf-self-harm` | [MedlinePlus — Suicide and Suicidal Thoughts](https://medlineplus.gov/suicide.html), 988 |
+
+The scope rules (dosing, medication change, diagnosis requests, out-of-domain
+questions, interaction and symptom-management questions) carry **no**
+citation, and deliberately so: they are boundaries this project set, not
+clinical findings, and that distinction is worth keeping visible in the table
+rather than dressing a design choice up as evidence.
 
 ## Education-source terms, verified before the pipeline was written
 

@@ -50,6 +50,7 @@ class NavigatorState(TypedDict, total=False):
     # pre-flight gate
     rule_matches: list[RuleMatch]
     intent: IntentAssessment
+    question_language: str
     policy_decision: PolicyDecision
 
     # investigate (the scoped executor's output)

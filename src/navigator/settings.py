@@ -33,6 +33,7 @@ class Settings(AgentSettings):
     max_run_seconds: float = 90.0
     citation_coverage_floor: float = 1.0
 
+    # Tighter than the library default: a patient question is a sentence or two.
     max_request_body_bytes: int = 8_192
 
     frontend_origins: list[str] = ["http://localhost:3000"]

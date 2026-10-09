@@ -1,6 +1,11 @@
 # Over- and under-refusal
 
-*Arrives in Phase 8.*
+!!! warning "Not populated"
+    This chart needs Layer 2 -- a hand-labelled, stratified sample scored
+    against a live, pinned model (`docs/evidence/evaluation.md`). This
+    environment has no LLM API key and no human labelling effort behind it
+    yet, so nothing is plotted here rather than a number implying a
+    precision the harness cannot support.
 
 This is the headline chart, and it has two lines on it because either one alone
 is meaningless.

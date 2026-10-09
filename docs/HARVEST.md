@@ -43,6 +43,27 @@ accommodate.
 | 15 | `plot_style.mplstyle` and the light/dark `_save` helper | `docs/generate_plots.py`, `docs/assets/` | Copied verbatim, then **made deterministic**: `metadata={"Date": None}` plus a pinned `svg.hashsalt` | **Essential fix** — A2's charts embed a timestamp, so its own no-drift rule cannot run. The shared version should carry A3's determinism |
 | 16 | Store repository layer with typed row models | `store/fact_store.py`, `store/models.py` | A3 adds a **row cap inside the store** and admits no unscoped clinical read | **Essential** — the cap is a minimum-necessary control in A3 and a cost control in A2 |
 | 17 | Build scripts as `data/` modules run by `make data` | `data/build_store.py` | Same shape; A3 adds fail-loud provenance checks | Incidental — the pattern is shared, the checks are domain-specific |
+| 18 | Deterministic oracle standing in for a live LLM at Layer 1 | `evals/oracle.py` | A3's oracle needs two case-specific pieces (a fixed classification, a fixed tool-call script) instead of one (A2's investigator); the answer writer, claim extractor and scope judge are generic in both | **Essential** — second occurrence; the "why an oracle, not recorded responses" framing and the record_responses.py replacement plan are identical in both repos |
+| 19 | Chart-drift check enforced by a real pytest test, not a Makefile diff step | `tests/docs/test_chart_determinism.py` | A2's docstring claims the CI check but never wires it; A3 has an actual test (byte-digest before/after regeneration, backed up and restored) | **Essential fix** — the shared version should be A3's test, not A2's unenforced claim |
+| 20 | Material announcement bar via `theme.custom_dir` override | `overrides/main.html`, `mkdocs.yml` | New in A3 (A2 has no announcement bar) | First occurrence — logged as an X5 `zarreh-docs-theme` candidate once a second app needs one |
+
+## Extraction status (2026-09-29)
+
+A3 now consumes `zarreh-agentkit` v0.2.0. What moved, and what deliberately did not:
+
+| # | Pattern | Status |
+|---|---|---|
+| 1 | `Settings` base | **Extracted** — `Settings(AgentSettings)`; A3 keeps its own `env_prefix`, fields, and a tighter `max_request_body_bytes` |
+| 3 | `MaxBodySizeMiddleware` | **Extracted** — `api/middleware.py` is a re-export |
+| 4 | Per-route `Limiter` | **Extracted** — `api/rate_limit.py` builds on `build_limiter` / `default_rate_limit` |
+| 12 | Budget guardrail | **Extracted** — ceiling from the library; A3 keeps its own `DEFAULT_BUDGET` (12 calls / 90s) and its conservative-template breach response |
+| — | Cost accounting, tracing callbacks | **Extracted** — `cost_tracking.py` is a re-export; `build_tracing_callbacks` replaces A3's copy. The handler yields a structural `CostEntryLike`, converted to the store's `CostEntry` at the persistence boundary |
+| 2 | `configure_logging` | **Kept local.** A3's takes a PHI redactor that must run immediately before the renderer; the library's does not. Needs an optional processor hook before A3 can drop its copy |
+| 8 | SSE bridge | **Kept local.** A3's filters `name == metadata["langgraph_node"]`; the library's does not, so conditional-edge routing functions leak through as spurious events. The library needs A3's filter |
+| 16 | Store row cap | **Kept local** — domain-specific (minimum-necessary control) |
+
+The two "kept local" rows are library changes, not A3 decisions: once the library accepts a
+logging processor hook and the corrected SSE filter, both copies can be deleted.
 
 ## Frontend components
 

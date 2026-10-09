@@ -1,4 +1,4 @@
-.PHONY: dev test lint typecheck imports check eval up down data docs docs-assets docs-screenshots frontend-dev frontend-build frontend-types frontend-e2e
+.PHONY: dev test lint typecheck imports check eval eval-live up down data docs docs-assets docs-screenshots frontend-dev frontend-build frontend-types frontend-e2e
 
 dev:
 	uv run uvicorn navigator.api.main:app --reload --port 8000
@@ -20,6 +20,10 @@ check: lint typecheck imports test
 
 eval:
 	uv run python -m evals.run
+
+# Real model, needs NAVIGATOR_OPENAI_API_KEY and spends tokens; `eval` is the key-free CI gate.
+eval-live:
+	uv run python -m evals.run_live
 
 up:
 	docker compose up --build

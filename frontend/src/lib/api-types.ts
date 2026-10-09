@@ -163,6 +163,11 @@ export interface components {
             total_cost_usd: number;
             /** Costs */
             costs: components["schemas"]["CostSummaryEntry"][];
+            /**
+             * Disclaimer
+             * @default Architectural demonstration on fully synthetic data. Not a medical device. Does not diagnose. Not a substitute for care.
+             */
+            disclaimer: string;
         };
         /** CostSummaryEntry */
         CostSummaryEntry: {
@@ -190,6 +195,11 @@ export interface components {
             id: string;
             /** Status */
             status: string;
+            /**
+             * Disclaimer
+             * @default Architectural demonstration on fully synthetic data. Not a medical device. Does not diagnose. Not a substitute for care.
+             */
+            disclaimer: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -216,6 +226,11 @@ export interface components {
             action: string;
             /** Run Status */
             run_status: string;
+            /**
+             * Disclaimer
+             * @default Architectural demonstration on fully synthetic data. Not a medical device. Does not diagnose. Not a substitute for care.
+             */
+            disclaimer: string;
         };
         /** ReviewSummary */
         ReviewSummary: {
@@ -235,6 +250,11 @@ export interface components {
             status: string;
             /** Created At */
             created_at: string;
+            /**
+             * Disclaimer
+             * @default Architectural demonstration on fully synthetic data. Not a medical device. Does not diagnose. Not a substitute for care.
+             */
+            disclaimer: string;
         };
         /** ValidationError */
         ValidationError: {

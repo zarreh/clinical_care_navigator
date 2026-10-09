@@ -9,6 +9,11 @@ from pathlib import Path
 
 from tests.api._navigator_client import build_navigator_test_context
 
+DISCLAIMER = (
+    "Architectural demonstration on fully synthetic data. Not a medical device. "
+    "Does not diagnose. Not a substitute for care."
+)
+
 
 def test_create_then_get_returns_answered_record(tmp_path: Path) -> None:
     ctx = build_navigator_test_context(
@@ -20,6 +25,7 @@ def test_create_then_get_returns_answered_record(tmp_path: Path) -> None:
     assert create.status_code == 202
     payload = create.json()
     assert payload["status"] == "running"
+    assert payload["disclaimer"] == DISCLAIMER
     run_id = payload["id"]
 
     record = ctx.client.get(f"/conversations/{run_id}").json()
@@ -30,6 +36,7 @@ def test_create_then_get_returns_answered_record(tmp_path: Path) -> None:
     assert record["answer"]["body"] == "Your A1c context."
     assert "total_cost_usd" in record
     assert isinstance(record["costs"], list)
+    assert record["disclaimer"] == DISCLAIMER
 
 
 def test_get_unknown_conversation_is_404(tmp_path: Path) -> None:

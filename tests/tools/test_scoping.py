@@ -12,7 +12,9 @@ from __future__ import annotations
 from langchain_core.messages.tool import ToolCall
 
 from navigator.schemas.scoping import ToolScope
+from navigator.store import RecordStore
 from navigator.tools import ScopedToolExecutor, ToolRegistry
+from tests.fixtures import FixtureStores
 
 RUN_ID = "run-under-test"
 
@@ -167,6 +169,55 @@ def test_forced_patient_id_applies_even_when_absent(
     )
     assert not result.security_events
     assert result.evidence[0].args_after_scoping["patient_id"] == session
+
+
+def test_get_clinical_notes_flags_injection_and_leaves_content_untouched(
+    executor: ScopedToolExecutor,
+    registry: ToolRegistry,
+    record_store: RecordStore,
+    stores: FixtureStores,
+) -> None:
+    """Canonical case 7: the payload is recorded, and the note reaches the
+    model completely unchanged -- "treated as data" is proven by content, not
+    merely asserted.
+    """
+    injected_patient = next(
+        pid
+        for pid in stores.patient_ids
+        if any(note.fixture_kind is not None for note in record_store.notes(pid))
+    )
+    result = executor.execute(
+        [_call("get_clinical_notes", "call-inj", patient_id=injected_patient)],
+        patient_id=injected_patient,
+        scope=registry.full_scope(),
+        run_id=RUN_ID,
+    )
+    events = [e for e in result.security_events if e.kind == "suspected_indirect_injection"]
+    assert len(events) == 1
+    assert events[0].enforced == "treated_as_data"
+    content = result.messages[0].content
+    assert isinstance(content, str)
+    assert "ignore prior instructions" in content.lower()
+
+
+def test_ordinary_notes_do_not_flag_injection(
+    executor: ScopedToolExecutor,
+    registry: ToolRegistry,
+    record_store: RecordStore,
+    stores: FixtureStores,
+) -> None:
+    clean_patient = next(
+        pid
+        for pid in stores.patient_ids
+        if not any(note.fixture_kind is not None for note in record_store.notes(pid))
+    )
+    result = executor.execute(
+        [_call("get_clinical_notes", "call-clean", patient_id=clean_patient)],
+        patient_id=clean_patient,
+        scope=registry.full_scope(),
+        run_id=RUN_ID,
+    )
+    assert not result.security_events
 
 
 def test_batch_of_calls_is_each_addressable(

@@ -21,6 +21,7 @@ from collections.abc import Callable
 from navigator.graph.state import NavigatorState
 from navigator.guardrails.templates import (
     critical_value_template,
+    language_limitation_template,
     render_template,
     scope_violation_template,
 )
@@ -58,7 +59,11 @@ def build_template_response_node(
         rule = (
             policy_store.rule(decision.rule_matches[0].rule_id) if decision.rule_matches else None
         )
-        body = render_template(decision.action, rule)
+        body = (
+            language_limitation_template()
+            if decision.language_limitation
+            else render_template(decision.action, rule)
+        )
         answer = PatientAnswer(
             body=body,
             claims=[],

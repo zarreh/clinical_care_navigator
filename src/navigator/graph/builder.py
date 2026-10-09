@@ -2,12 +2,12 @@
 
 `build_skeleton_graph` is the Phase 0 walking skeleton, kept so the streaming
 path stays proven. `build_navigator_graph` wires the real graph (§5.1): intake
-loads the patient header; the pre-flight gate (screen_rules ∥ classify_intent →
-resolve_policy) routes to a templated branch or into the investigate loop; the
-investigate loop drives the scoped executor; draft_answer produces the cited
-PatientAnswer; post-flight (extract_claims -> post_flight) runs the three
-safety checks and routes to publish, a templated escalation, the review
-queue, or back into the loop for a missing citation (§5.3).
+loads the patient header; the pre-flight gate (screen_rules ∥ classify_intent ∥
+detect_language → resolve_policy) routes to a templated branch or into the
+investigate loop; the investigate loop drives the scoped executor; draft_answer
+produces the cited PatientAnswer; post-flight (extract_claims -> post_flight)
+runs the three safety checks and routes to publish, a templated escalation, the
+review queue, or back into the loop for a missing citation (§5.3).
 
 Node filename == registered node name == trace span name (§9.3 rule 3).
 """
@@ -30,6 +30,7 @@ from navigator.graph.edges import (
 )
 from navigator.graph.nodes.budget_exceeded import budget_exceeded_node
 from navigator.graph.nodes.classify_intent import build_classify_intent_node
+from navigator.graph.nodes.detect_language import detect_language_node
 from navigator.graph.nodes.done import done
 from navigator.graph.nodes.draft_answer import build_draft_answer_node
 from navigator.graph.nodes.echo import echo
@@ -124,6 +125,7 @@ def build_navigator_graph(
     workflow.add_node("intake", build_intake_node(record_store, settings))  # type: ignore[arg-type]
     workflow.add_node("screen_rules", build_screen_rules_node(rule_engine))  # type: ignore[arg-type]
     workflow.add_node("classify_intent", build_classify_intent_node(intent_chain))  # type: ignore[arg-type]
+    workflow.add_node("detect_language", detect_language_node)
     workflow.add_node(
         "resolve_policy",
         build_resolve_policy_node(policy_store, registry, DEFAULT_ROW_CAP),  # type: ignore[arg-type]
@@ -154,11 +156,14 @@ def build_navigator_graph(
     workflow.add_node("budget_exceeded", budget_exceeded_node)
 
     workflow.set_entry_point("intake")
-    # screen_rules and classify_intent run in parallel after intake (§5.1).
+    # screen_rules, classify_intent and detect_language run in parallel after
+    # intake (§5.1); resolve_policy is their join.
     workflow.add_edge("intake", "screen_rules")
     workflow.add_edge("intake", "classify_intent")
+    workflow.add_edge("intake", "detect_language")
     workflow.add_edge("screen_rules", "resolve_policy")
     workflow.add_edge("classify_intent", "resolve_policy")
+    workflow.add_edge("detect_language", "resolve_policy")
     workflow.add_conditional_edges(
         "resolve_policy",
         route_after_resolve_policy,
