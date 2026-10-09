@@ -1,0 +1,22 @@
+.git
+.venv
+.env
+.env.*
+!.env.example
+.mypy_cache
+.ruff_cache
+.pytest_cache
+.import_linter_cache
+__pycache__
+*.pyc
+
+# Runtime data is bind-mounted, never baked into the image.
+data
+
+# Not needed to build or run the API.
+frontend
+docs
+site
+tests
+evals
+reference
