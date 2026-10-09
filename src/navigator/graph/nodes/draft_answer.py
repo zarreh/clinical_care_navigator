@@ -27,20 +27,40 @@ READING_LEVEL_TARGET = {
 _DEFAULT_TARGET = READING_LEVEL_TARGET["intermediate"]
 
 
+def _grade(body: str) -> float:
+    return float(textstat.flesch_kincaid_grade(body))
+
+
 def build_draft_answer_node(
     answer_writer_chain: AnswerWriterChain,
 ) -> Callable[[NavigatorState], dict[str, object]]:
     def draft_answer_node(state: NavigatorState) -> dict[str, object]:
         target = READING_LEVEL_TARGET.get(state.get("literacy_level", ""), _DEFAULT_TARGET)
         evidence = [record.model_dump(mode="json") for record in state.get("evidence", [])]
-        draft = answer_writer_chain.invoke(
-            {
-                "question": state["question"],
-                "reading_level_target": target,
-                "evidence": evidence,
-            }
-        )
-        measured = float(textstat.flesch_kincaid_grade(draft.body))
+        request: dict[str, object] = {
+            "question": state["question"],
+            "reading_level_target": target,
+            "evidence": evidence,
+            "revision_feedback": "",
+        }
+        draft = answer_writer_chain.invoke(request)
+        measured = _grade(draft.body)
+        if measured > target:
+            # One rewrite, told its measured grade: a model given only a target number
+            # misses it most of the time. Keep whichever draft reads easier, never a worse one.
+            revised = answer_writer_chain.invoke(
+                {
+                    **request,
+                    "revision_feedback": (
+                        f"Your previous answer reads at grade {measured:.1f}; the target is "
+                        f"{target:.1f}. Rewrite the body with shorter sentences and everyday "
+                        "words. Keep every claim and citation exactly as they are."
+                    ),
+                }
+            )
+            revised_measured = _grade(revised.body)
+            if revised_measured < measured:
+                draft, measured = revised, revised_measured
         # Rebuild frozen model with the measured level and the run's metadata.
         answer = PatientAnswer(
             **{

@@ -29,7 +29,8 @@ def build_answer_writer_chain(model: BaseChatModel) -> AnswerWriterChain:
                 "human",
                 "Question: {question}\n\n"
                 "Reading-level target (Flesch-Kincaid grade): {reading_level_target}\n\n"
-                "Evidence gathered (tool results and education pages):\n{evidence}",
+                "Evidence gathered (tool results and education pages):\n{evidence}\n\n"
+                "{revision_feedback}",
             ),
         ]
     )
