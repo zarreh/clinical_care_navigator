@@ -111,7 +111,7 @@ async def execute_conversation(
 
         run_store.record_costs(run_id, list(cost_handler.entries))
 
-        interrupt_payload = _pending_interrupt(graph, config)
+        interrupt_payload = await _pending_interrupt(graph, config)
         if interrupt_payload is not None:
             _enqueue_review(
                 run_store, review_queue, run_id, patient_id, interrupt_payload, final_state
@@ -125,13 +125,16 @@ async def execute_conversation(
         structlog.contextvars.unbind_contextvars("correlation_id")
 
 
-def _pending_interrupt(graph: NavigatorGraph, config: RunnableConfig) -> dict[str, object] | None:
+async def _pending_interrupt(
+    graph: NavigatorGraph, config: RunnableConfig
+) -> dict[str, object] | None:
     """The review payload if the graph suspended at ``enqueue_review``, else None.
 
     A suspended graph has a non-empty ``next`` and carries the interrupt value on
     its pending task; that value is the review payload the node raised (§5.10).
+    Async because the production checkpointer is async-only from the event loop.
     """
-    snapshot = graph.get_state(config)
+    snapshot = await graph.aget_state(config)
     if not snapshot.next:
         return None
     for task in snapshot.tasks:
