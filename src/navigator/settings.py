@@ -35,6 +35,8 @@ class Settings(AgentSettings):
 
     max_request_body_bytes: int = 8_192
 
+    frontend_origins: list[str] = ["http://localhost:3000"]
+
 
 @lru_cache
 def get_settings() -> Settings:

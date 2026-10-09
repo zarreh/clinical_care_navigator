@@ -16,6 +16,7 @@ from pathlib import Path
 
 import structlog
 from fastapi import FastAPI, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -86,6 +87,15 @@ async def bind_correlation_id(
         structlog.contextvars.unbind_contextvars("correlation_id")
     response.headers["X-Correlation-ID"] = correlation_id
     return response
+
+
+# Added last so it is the outermost layer and answers preflights before anything else.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.frontend_origins,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
+)
 
 
 app.include_router(health.router)
