@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from navigator.api.deps import (
     get_navigator_graph,
@@ -19,6 +19,7 @@ from navigator.api.deps import (
     get_run_store,
     settings_dependency,
 )
+from navigator.api.rate_limit import DEFAULT_RATE_LIMIT, limiter
 from navigator.api.run_executor import resume_conversation
 from navigator.api.schemas import (
     ReviewDecisionRequest,
@@ -33,7 +34,9 @@ router = APIRouter(prefix="/reviews", tags=["reviews"])
 
 
 @router.get("")
+@limiter.limit(DEFAULT_RATE_LIMIT)
 async def list_reviews(
+    request: Request,
     review_queue: Annotated[ReviewQueue, Depends(get_review_queue)],
 ) -> list[ReviewSummary]:
     return [
@@ -52,7 +55,9 @@ async def list_reviews(
 
 
 @router.post("/{review_id}/decision")
+@limiter.limit(DEFAULT_RATE_LIMIT)
 async def decide_review(
+    request: Request,
     review_id: str,
     body: ReviewDecisionRequest,
     graph: Annotated[NavigatorGraph, Depends(get_navigator_graph)],

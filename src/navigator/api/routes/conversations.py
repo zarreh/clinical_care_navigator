@@ -96,7 +96,9 @@ async def create_conversation(
 
 
 @router.get("/{run_id}")
+@limiter.limit(DEFAULT_RATE_LIMIT)
 async def get_conversation(
+    request: Request,
     run_id: str,
     run_store: Annotated[RunStore, Depends(get_run_store)],
 ) -> ConversationResponse:
@@ -129,7 +131,9 @@ async def get_conversation(
 
 
 @router.get("/{run_id}/events")
+@limiter.limit(DEFAULT_RATE_LIMIT)
 async def stream_conversation(
+    request: Request,
     run_id: str,
     run_store: Annotated[RunStore, Depends(get_run_store)],
 ) -> EventSourceResponse:
