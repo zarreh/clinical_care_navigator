@@ -26,7 +26,7 @@ import json
 import sqlite3
 import sys
 from dataclasses import asdict, dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 DATA_DIR = Path(__file__).resolve().parent
@@ -232,11 +232,20 @@ def inject_critical_potassium(connection: sqlite3.Connection, patient_id: str) -
     if encounter_id is None:
         raise SystemExit(f"Patient {patient_id} has no encounter to attach the fixture to.")
 
-    taken_at = _one(
+    latest_lab = _one(
+        connection,
+        "SELECT MAX(taken_at) FROM observations WHERE patient_id = ? AND category = 'laboratory'",
+        patient_id,
+    )
+    encounter_day = _one(
         connection,
         "SELECT started_at FROM encounters WHERE encounter_id = ?",
         encounter_id,
     )
+    # The day after the newest lab: on the same date Synthea's own, normal potassium won the
+    # tie-break, so "my most recent potassium" never saw the planted value.
+    newest = max(day for day in (latest_lab, encounter_day) if day is not None)
+    taken_at = (date.fromisoformat(newest[:10]) + timedelta(days=1)).isoformat()
     observation_id = f"obs-fixture-{patient_id[:8]}-critical-potassium"
     connection.execute(
         "INSERT OR REPLACE INTO observations VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
