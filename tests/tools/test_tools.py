@@ -68,6 +68,41 @@ def test_get_labs_exact_loinc_filter(registry: ToolRegistry, patient_ids: list[s
     assert all(lab.loinc_code == LOINC_WITH_RANGE for lab in result.labs)
 
 
+def test_get_labs_by_analyte_name_finds_the_code_the_model_cannot_know(
+    registry: ToolRegistry, patient_ids: list[str]
+) -> None:
+    # The agent knows "potassium" but not which of several LOINC codes the record uses.
+    result = _invoke(registry, "get_labs", patient_id=patient_ids[0], analyte="Potassium")
+    assert isinstance(result, LabsResult)
+    assert result.count >= 1
+    assert all("potassium" in lab.description.lower() for lab in result.labs)
+
+
+def test_get_labs_analyte_match_is_case_insensitive_and_exact_to_the_name(
+    registry: ToolRegistry, patient_ids: list[str]
+) -> None:
+    result = _invoke(registry, "get_labs", patient_id=patient_ids[0], analyte="  CHLORIDE ")
+    assert isinstance(result, LabsResult)
+    assert result.count >= 1
+    assert all("chloride" in lab.description.lower() for lab in result.labs)
+
+
+def test_get_labs_unknown_analyte_is_an_empty_list_not_a_substitute(
+    registry: ToolRegistry, patient_ids: list[str]
+) -> None:
+    result = _invoke(registry, "get_labs", patient_id=patient_ids[0], analyte="albumin")
+    assert isinstance(result, LabsResult)
+    assert result.count == 0
+
+
+def test_get_labs_analyte_does_not_treat_sql_wildcards_as_patterns(
+    registry: ToolRegistry, patient_ids: list[str]
+) -> None:
+    result = _invoke(registry, "get_labs", patient_id=patient_ids[0], analyte="%")
+    assert isinstance(result, LabsResult)
+    assert result.count == 0
+
+
 def test_get_medications_carry_rxcui(registry: ToolRegistry, patient_ids: list[str]) -> None:
     result = _invoke(registry, "get_medications", patient_id=patient_ids[0])
     assert isinstance(result, MedicationsResult)

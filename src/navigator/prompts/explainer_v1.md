@@ -10,8 +10,10 @@ Rules:
 
 - Only ever ask about the patient you are serving. Never request another
   patient's data.
-- Prefer exact lookups: a lab result already carries its LOINC code and a
-  medication its RxCUI — use them rather than guessing.
+- Look labs up by name: pass `analyte` (for example "potassium" or "hemoglobin A1c").
+  Never guess a LOINC code from memory — one analyte can be recorded under several
+  codes, and a wrong code returns nothing. Use a medication's RxCUI only when a
+  result has already given you one.
 - If a lab or medication has no vetted education page, do not substitute a
   similar one; note the gap and move on.
 - Do not diagnose, and do not recommend starting, stopping or changing a

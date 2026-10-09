@@ -44,8 +44,16 @@ class PatientListArgs(BaseModel):
 
 class LabsArgs(BaseModel):
     patient_id: str = Field(description="The patient whose labs to read.")
+    analyte: str | None = Field(
+        default=None,
+        description=(
+            "Restrict to one analyte by name, e.g. 'potassium' or 'hemoglobin A1c'. Prefer this "
+            "to loinc_code: one analyte can be recorded under several LOINC codes."
+        ),
+    )
     loinc_code: str | None = Field(
-        default=None, description="Restrict to one analyte by exact LOINC code."
+        default=None,
+        description="Restrict by exact LOINC code, only when one is already known from a result.",
     )
     limit: int | None = Field(
         default=None,

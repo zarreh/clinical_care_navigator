@@ -110,6 +110,7 @@ class RecordStore:
         patient_id: str,
         *,
         loinc_code: str | None = None,
+        analyte: str | None = None,
         category: str | None = "laboratory",
         limit: int | None = None,
     ) -> list[Observation]:
@@ -118,6 +119,10 @@ class RecordStore:
         if loinc_code:
             clauses.append("loinc_code = ?")
             parameters.append(loinc_code)
+        if analyte and analyte.strip():
+            # instr, not LIKE: the name is untrusted model output and must not act as a pattern.
+            clauses.append("instr(lower(description), lower(?)) > 0")
+            parameters.append(analyte.strip())
         if category:
             clauses.append("category = ?")
             parameters.append(category)
