@@ -6,6 +6,8 @@ data/raw/
 data/synthea/
 data/education_cache/
 data/*.db
+data/*.db-shm
+data/*.db-wal
 data/*.csv
 data/education_coverage.json
 data/scenarios.json
