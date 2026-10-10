@@ -1,4 +1,12 @@
-.PHONY: dev test lint typecheck imports check eval eval-live up down data docs docs-assets docs-screenshots frontend-dev frontend-build frontend-types frontend-e2e
+.PHONY: run dev test lint typecheck imports check eval eval-live up down data docs docs-assets docs-screenshots frontend-dev frontend-build frontend-types frontend-e2e
+
+# API on :8000 and frontend on :3000; Ctrl-C stops both.
+run:
+	@[ -d frontend/node_modules ] || (cd frontend && npm install)
+	@trap 'kill 0' INT TERM EXIT; \
+	uv run uvicorn navigator.api.main:app --port 8000 --timeout-graceful-shutdown 2 & \
+	(cd frontend && npm run dev) & \
+	wait
 
 dev:
 	uv run uvicorn navigator.api.main:app --reload --port 8000
