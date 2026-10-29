@@ -1,35 +1,18 @@
-import asyncio
 import json
+import time
 from collections.abc import AsyncIterator
+from functools import partial
+from typing import Any
 
-from navigator.graph.builder import SkeletonGraph
-from navigator.graph.state import SkeletonState
+from zarreh_agentkit.runs import replay_and_tail
+from zarreh_agentkit.serialization import stream_graph_events
+
 from navigator.store.run_store import RunStore
 
-_POLL_INTERVAL_SECONDS = 0.25
+__all__ = ["stream_conversation_events", "stream_graph_events"]
 
 
-async def stream_graph_events(
-    graph: SkeletonGraph, initial_state: SkeletonState
-) -> AsyncIterator[str]:
-    """Bridges a LangGraph run to Server-Sent Events, one event per node step.
-
-    The node filter is `name == metadata["langgraph_node"]` rather than a
-    presence check on `langgraph_node`: conditional-edge routing functions also
-    emit `on_chain_end` with the *source* node in their metadata, under their
-    own function name.
-    """
-    async for event in graph.astream_events(initial_state, version="v2"):
-        if event["event"] != "on_chain_end":
-            continue
-        node = event.get("metadata", {}).get("langgraph_node")
-        if not node or event.get("name") != node:
-            continue
-        yield json.dumps({"node": node, "output": event.get("data", {}).get("output")}, default=str)
-    yield json.dumps({"node": "__end__", "output": None})
-
-
-async def stream_conversation_events(
+def stream_conversation_events(
     run_store: RunStore, run_id: str, max_wait_seconds: float | None = None
 ) -> AsyncIterator[str]:
     """Replays every event already persisted for a conversation, then — while the
@@ -44,22 +27,16 @@ async def stream_conversation_events(
     status ends the stream with its current status rather than holding the
     connection open forever.
     """
-    loop = asyncio.get_running_loop()
-    deadline = None if max_wait_seconds is None else loop.time() + max_wait_seconds
-    last_sequence = -1
-    while True:
-        events = run_store.get_events(run_id, after_sequence=last_sequence)
-        for event in events:
-            yield json.dumps({"node": event.node, "output": json.loads(event.payload_json)})
-            last_sequence = event.sequence
+    deadline = None if max_wait_seconds is None else time.monotonic() + max_wait_seconds
 
+    def poll_end() -> dict[str, Any] | None:
         run = run_store.get_run(run_id)
-        if run is None or run.status != "running":
-            break
-        if deadline is not None and loop.time() >= deadline:
-            break
-        await asyncio.sleep(_POLL_INTERVAL_SECONDS)
+        still_running = run is not None and run.status == "running"
+        timed_out = deadline is not None and time.monotonic() >= deadline
+        if still_running and not timed_out:
+            return None
+        status = run.status if run is not None else "not_found"
+        answer = json.loads(run.answer_json) if run is not None and run.answer_json else None
+        return {"status": status, "answer": answer}
 
-    status = run.status if run is not None else "not_found"
-    answer = json.loads(run.answer_json) if run is not None and run.answer_json else None
-    yield json.dumps({"node": "__end__", "output": {"status": status, "answer": answer}})
+    return replay_and_tail(partial(run_store.get_events, run_id), poll_end)

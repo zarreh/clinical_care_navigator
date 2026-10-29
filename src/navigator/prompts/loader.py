@@ -3,17 +3,9 @@
 (A10) without touching code.
 """
 
-from __future__ import annotations
-
-from functools import lru_cache
 from pathlib import Path
 
-_PROMPTS_DIR = Path(__file__).parent
+from zarreh_agentkit.prompts import PromptLoader
 
-
-@lru_cache
-def load_prompt(prompt_id: str) -> str:
-    path = _PROMPTS_DIR / f"{prompt_id}.md"
-    if not path.exists():
-        raise FileNotFoundError(f"No prompt file for id {prompt_id!r} at {path}")
-    return path.read_text().strip()
+_LOADER = PromptLoader(Path(__file__).parent)
+load_prompt = _LOADER.load

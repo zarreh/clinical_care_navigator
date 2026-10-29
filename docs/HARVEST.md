@@ -47,9 +47,9 @@ accommodate.
 | 19 | Chart-drift check enforced by a real pytest test, not a Makefile diff step | `tests/docs/test_chart_determinism.py` | A2's docstring claims the CI check but never wires it; A3 has an actual test (byte-digest before/after regeneration, backed up and restored) | **Essential fix** — the shared version should be A3's test, not A2's unenforced claim |
 | 20 | Material announcement bar via `theme.custom_dir` override | `overrides/main.html`, `mkdocs.yml` | New in A3 (A2 has no announcement bar) | First occurrence — logged as an X5 `zarreh-docs-theme` candidate once a second app needs one |
 
-## Extraction status (2026-09-29)
+## Extraction status (2026-10-28)
 
-A3 now consumes `zarreh-agentkit` v0.2.0. What moved, and what deliberately did not:
+A3 now consumes `zarreh-agentkit` v0.5.0. What moved, and what deliberately did not:
 
 | # | Pattern | Status |
 |---|---|---|
@@ -57,13 +57,19 @@ A3 now consumes `zarreh-agentkit` v0.2.0. What moved, and what deliberately did 
 | 3 | `MaxBodySizeMiddleware` | **Extracted** — `api/middleware.py` is a re-export |
 | 4 | Per-route `Limiter` | **Extracted** — `api/rate_limit.py` builds on `build_limiter` / `default_rate_limit` |
 | 12 | Budget guardrail | **Extracted** — ceiling from the library; A3 keeps its own `DEFAULT_BUDGET` (12 calls / 90s) and its conservative-template breach response |
-| — | Cost accounting, tracing callbacks | **Extracted** — `cost_tracking.py` is a re-export; `build_tracing_callbacks` replaces A3's copy. The handler yields a structural `CostEntryLike`, converted to the store's `CostEntry` at the persistence boundary |
-| 2 | `configure_logging` | **Kept local.** A3's takes a PHI redactor that must run immediately before the renderer; the library's does not. Needs an optional processor hook before A3 can drop its copy |
-| 8 | SSE bridge | **Kept local.** A3's filters `name == metadata["langgraph_node"]`; the library's does not, so conditional-edge routing functions leak through as spurious events. The library needs A3's filter |
+| — | Cost accounting | **Extracted** (v0.3.0) — `cost_tracking.py` is a re-export. The library now carries the three fixes A3 needed: node tag read from the start event, `usage_metadata` fallback for structured output, dated model names priced by family. `CostEntry` is the library's |
+| — | Tracing callbacks | **Extracted** (v0.3.0) — the library binds the tracer to a `langsmith.Client` carrying the key, so A3's private copy (which existed to avoid a 401) is gone |
+| 2 | `configure_logging` | **Extracted** (v0.2.1) — `observability.configure_logging` wraps the library's, passing the PHI redactor through `extra_processors` so it still runs immediately before the renderer |
+| 8 | SSE bridge | **Extracted** (v0.2.1) — `stream_graph_events` is the library's, with the `name == langgraph_node` filter |
+| — | Run store events/costs | **Extracted** (v0.4.0) — `RunStore` subclasses `RunEventLog(table_prefix="conversation")`, so the table names are unchanged; the `conversations` table, follow-up migration and review columns stay local |
+| — | Replay-then-tail SSE | **Extracted** (v0.4.0) — `stream_conversation_events` is `replay_and_tail`; the `max_wait_seconds` bound is applied in its `poll_end` |
+| — | Prompt loader, `/healthz` | **Extracted** (v0.4.0) |
+| — | Node-step loop | **Partly extracted** (v0.4.0) — the executor uses `iter_node_outputs`/`json_default`. It does not use `execute_run`: after streaming it awaits `aget_state` to detect a held review, and `execute_run`'s finaliser is synchronous |
+| — | Injection scan | **Extracted** (v0.5.0) — `scan_for_injection` is `first_matching_rule(...) is not None` over the shared catalogue |
 | 16 | Store row cap | **Kept local** — domain-specific (minimum-necessary control) |
-
-The two "kept local" rows are library changes, not A3 decisions: once the library accepts a
-logging processor hook and the corrected SSE filter, both copies can be deleted.
+| — | PHI redaction (`PhiRedactor`) | **Kept local** — still the only redaction primitive of its shape (the library's README lists it as deferred) |
+| — | Retrieval (`note_search`) | **Kept local** — a raw Qdrant client with a mandatory per-patient filter; it did not share a core with the other Qdrant consumer |
+| — | Claim extraction / citation coverage | **Kept local** — A3 verifies coverage deterministically against recorded evidence ids, not by an LLM grounding judge, so the library's grounding aggregation does not apply |
 
 ## Frontend components
 

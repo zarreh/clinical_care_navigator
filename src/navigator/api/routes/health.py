@@ -1,11 +1,5 @@
-from fastapi import APIRouter, Request
+from zarreh_agentkit.api.health import build_health_router
 
 from navigator.api.rate_limit import READ_RATE_LIMIT, limiter
 
-router = APIRouter(tags=["health"])
-
-
-@router.get("/healthz")
-@limiter.limit(READ_RATE_LIMIT)
-def healthz(request: Request) -> dict[str, str]:
-    return {"status": "ok"}
+router = build_health_router(limiter, READ_RATE_LIMIT)

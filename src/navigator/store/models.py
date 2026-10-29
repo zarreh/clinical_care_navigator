@@ -9,6 +9,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from zarreh_agentkit.cost import CostEntry
+from zarreh_agentkit.runs import RunEvent
+
 from navigator.schemas.common import LiteracyLevel
 
 
@@ -235,22 +238,6 @@ class PolicyRule:
 
 
 @dataclass(frozen=True)
-class CostEntry:
-    """One attributed LLM call within a graph run (docs/PLAN.md §5.5).
-
-    The node is resolved from LangGraph's ``langgraph_node`` run metadata, so a
-    single callback attached to the whole invocation attributes every call back
-    to the node that made it — no plumbing through node code.
-    """
-
-    node: str
-    model: str
-    prompt_tokens: int
-    completion_tokens: int
-    cost_usd: float
-
-
-@dataclass(frozen=True)
 class RunRecord:
     """The operational record of one conversation run.
 
@@ -273,18 +260,6 @@ class RunRecord:
     # turn 0 of a conversation whose id is its own.
     conversation_id: str
     turn: int
-
-
-@dataclass(frozen=True)
-class RunEvent:
-    """One node boundary persisted during a run, so the stream replays whether a
-    client watches live or reconnects long after the run finished."""
-
-    run_id: str
-    sequence: int
-    node: str
-    payload_json: str
-    created_at: str
 
 
 @dataclass(frozen=True)
@@ -344,3 +319,24 @@ class HistorySummary:
             + self.allergies
             + self.notes
         )
+
+
+__all__ = [
+    "Allergy",
+    "ClinicalNote",
+    "Condition",
+    "CostEntry",
+    "CoverageGap",
+    "EducationPage",
+    "Encounter",
+    "HistorySummary",
+    "Medication",
+    "Observation",
+    "Patient",
+    "PolicyRule",
+    "Procedure",
+    "ReferenceRange",
+    "ReviewItem",
+    "RunEvent",
+    "RunRecord",
+]
