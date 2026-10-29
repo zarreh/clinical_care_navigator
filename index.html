@@ -362,6 +362,25 @@
   
   
     <li class="md-tabs__item">
+      <a href="deploy/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Deploy to a server
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
       <a href="api/" class="md-tabs__link">
         
   
@@ -1544,6 +1563,33 @@
   
   
     <li class="md-nav__item">
+      <a href="deploy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deploy to a server
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="api/" class="md-nav__link">
         
   
@@ -1668,15 +1714,8 @@ also receives <em>"should I stop taking my metformin?"</em>, <em>"do I have lupu
 <p>Healthcare AI is not blocked by model quality. It is blocked by the absence of
 an auditable refusal path.</p>
 <h2 id="what-this-shows">What this shows<a class="headerlink" href="#what-this-shows" title="Permanent link">¶</a></h2>
-<pre class="mermaid"><code>graph TD
-  Q[Patient question] --&gt; PG[Pre-flight gate&lt;br/&gt;deterministic screen + intent classifier]
-  PG --&gt;|emergency / crisis / out of scope| OUT
-  PG --&gt;|decision-adjacent| ESC[Clinician review queue]
-  PG --&gt;|allow, scoped| AG[Agent · scoped tools only]
-  AG --&gt; PF[Post-flight&lt;br/&gt;critical values · citation coverage · scope judge]
-  PF --&gt;|escalate or downgrade| OUT
-  PF --&gt;|pass| PUB[Publish · deterministic]
-  PUB --&gt; OUT[Answer + citations + autonomy level]</code></pre>
+<!-- Source: docs/diagrams/answer-flow.mmd. Regenerate with `make docs-diagrams`. -->
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="assets/diagrams/answer-flow.svg" data-desc-position="bottom"><img alt="How a question flows: pre-flight gate, scoped agent, post-flight checks, then publish, a clinician review queue, or a safe pre-written reply" src="assets/diagrams/answer-flow.svg"></a></p>
 <p>Policy runs <strong>before</strong> the model and <strong>after</strong> it, and the second half is not a
 replay of the first — it assesses the retrieved evidence and the drafted answer
 on its own authority. See <a href="how-it-works/the-guardrail-sandwich/">The guardrail sandwich</a>.</p>

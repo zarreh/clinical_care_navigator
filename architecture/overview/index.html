@@ -364,6 +364,25 @@
   
   
     <li class="md-tabs__item">
+      <a href="../../deploy/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Deploy to a server
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
       <a href="../../api/" class="md-tabs__link">
         
   
@@ -1554,6 +1573,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../../deploy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deploy to a server
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../api/" class="md-nav__link">
         
   
@@ -1667,25 +1713,8 @@ assistant reads anything, one after it has written a draft — and the boxes
 that make the final decisions are ordinary code, not the language model.</p>
 </div>
 <h2 id="the-graph">The graph<a class="headerlink" href="#the-graph" title="Permanent link">¶</a></h2>
-<pre class="mermaid"><code>graph TD
-  IN[intake] --&gt; SR[screen_rules&lt;br/&gt;deterministic]
-  IN --&gt; CI[classify_intent&lt;br/&gt;one model call]
-  SR --&gt; RP[resolve_policy&lt;br/&gt;deterministic]
-  CI --&gt; RP
-  RP --&gt;|emergency| T1[template]
-  RP --&gt;|crisis| T2[template]
-  RP --&gt;|out of scope| T3[template]
-  RP --&gt;|decision-adjacent| EQ[enqueue_review]
-  RP --&gt;|allow, scoped| INV[investigate ⇄ scoped tools]
-  INV --&gt; DR[draft_answer]
-  DR --&gt; EC[extract_claims]
-  EC --&gt; PF[post_flight]
-  PF --&gt;|uncited, ≤1| INV
-  PF --&gt; PUB[publish&lt;br/&gt;deterministic]
-  T1 --&gt; PUB
-  T2 --&gt; PUB
-  T3 --&gt; PUB
-  EQ --&gt; PUB</code></pre>
+<!-- Source: docs/diagrams/graph-nodes.mmd. Regenerate with `make docs-diagrams`. -->
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../../assets/diagrams/graph-nodes.svg" data-desc-position="bottom"><img alt="The navigator graph: intake and contextualize lead into screen_rules, classify_intent and detect_language, which join at resolve_policy, then investigate, draft, extract claims and post_flight, ending in template_response, enqueue_review, publish or budget_exceeded" src="../../assets/diagrams/graph-nodes.svg"></a></p>
 <h2 id="five-properties-this-is-designed-to-have">Five properties this is designed to have<a class="headerlink" href="#five-properties-this-is-designed-to-have" title="Permanent link">¶</a></h2>
 <ol>
 <li><strong>Both halves of the sandwich assess independently.</strong> Pre-flight judges the
@@ -1694,7 +1723,9 @@ that make the final decisions are ordinary code, not the language model.</p>
    is enforced by topology, not by filtering afterwards.</li>
 <li><strong>One model call before any evidence is gathered.</strong> <code>screen_rules</code> and
    <code>resolve_policy</code> are code. Don't spend a model call on a decision an <code>if</code> can
-   make.</li>
+   make. (A <em>follow-up</em> question adds one cheap call first, <code>contextualize</code>, to
+   make it stand on its own; a first question never pays for it. See
+   <a href="../../run-it-yourself/#follow-up-questions">Follow-up questions</a>.)</li>
 <li><strong>Cheap checks run before expensive ones.</strong> Critical-value and citation
    checks are pure code and can short-circuit the judge.</li>
 <li><strong>Publication is deterministic.</strong> <code>publish</code> emits the already-judged draft; it

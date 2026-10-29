@@ -364,6 +364,25 @@
   
   
     <li class="md-tabs__item">
+      <a href="../../deploy/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Deploy to a server
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
       <a href="../../api/" class="md-tabs__link">
         
   
@@ -736,7 +755,7 @@
   <a href="#a-full-cited-answer-streamed-and-checked" class="md-nav__link">
     <span class="md-ellipsis">
       
-        A full, cited answer — streamed and checked
+        A full, cited answer, streamed and checked
       
     </span>
   </a>
@@ -744,10 +763,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#trigger-an-escalation-without-typing" class="md-nav__link">
+  <a href="#case-4-a-harmless-question-over-a-critical-value" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Trigger an escalation — without typing
+        Case 4: a harmless question over a critical value
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#follow-up-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Follow-up questions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#held-for-a-clinician" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Held for a clinician
       
     </span>
   </a>
@@ -1562,6 +1603,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../../deploy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deploy to a server
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../api/" class="md-nav__link">
         
   
@@ -1612,7 +1680,7 @@
   <a href="#a-full-cited-answer-streamed-and-checked" class="md-nav__link">
     <span class="md-ellipsis">
       
-        A full, cited answer — streamed and checked
+        A full, cited answer, streamed and checked
       
     </span>
   </a>
@@ -1620,10 +1688,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#trigger-an-escalation-without-typing" class="md-nav__link">
+  <a href="#case-4-a-harmless-question-over-a-critical-value" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Trigger an escalation — without typing
+        Case 4: a harmless question over a critical value
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#follow-up-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Follow-up questions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#held-for-a-clinician" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Held for a clinician
       
     </span>
   </a>
@@ -1678,50 +1768,93 @@
 
 
 <h1 id="watch-it-work">Watch it work<a class="headerlink" href="#watch-it-work" title="Permanent link">¶</a></h1>
-<p>First paint first: a visitor lands on the app and watches a full answer stream
-node-by-node against a preloaded example — before typing anything. The frontend
-is a small <a href="https://nextjs.org/">Next.js</a> app that talks to the same API the
-<a href="../the-guardrail-sandwich/">guardrail sandwich</a> runs behind, and every component
-stays local to this repo (an extraction candidate for a shared UI package, logged
-in <code>HARVEST.md</code>).</p>
+<p>The app explains itself first and runs nothing until you ask. The homepage
+walks through the guardrail sandwich, who owns each step, and offers four
+example questions that each end a different way, plus a free-text box. The
+frontend is a small <a href="https://nextjs.org/">Next.js</a> app that talks to the same
+API the <a href="../the-guardrail-sandwich/">guardrail sandwich</a> runs behind.</p>
 <p>Everything below runs on <strong>fully synthetic Synthea data</strong>. The banner saying so
 is on every page, and the app is not a medical device.</p>
-<h2 id="a-full-cited-answer-streamed-and-checked">A full, cited answer — streamed and checked<a class="headerlink" href="#a-full-cited-answer-streamed-and-checked" title="Permanent link">¶</a></h2>
-<p>The example question runs on load. You see each node as it happens — reading the
-question, screening for red-flag rules, resolving policy, looking up <em>your own</em>
-record, drafting, breaking the draft into claims, checking every claim against
-the record, and publishing — then the published answer itself.</p>
-<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../../assets/screenshot-answer.png" data-desc-position="bottom"><img alt="The streamed, cited answer" src="../../assets/screenshot-answer.png"></a></p>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../../assets/screenshot-home.png#only-light" data-desc-position="bottom"><img alt="The homepage" src="../../assets/screenshot-home.png#only-light"></a>
+<a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../../assets/screenshot-home-dark.png#only-dark" data-desc-position="bottom"><img alt="The homepage" src="../../assets/screenshot-home-dark.png#only-dark"></a></p>
+<p>The first thing on the page is <strong>Who are you asking as?</strong>: a few synthetic patients,
+each with a one-line story, their language and reading target, and how big their
+record is. The example questions ask as the patient whose record they need, and every
+run and held review says who it was asked as. See
+<a href="../../run-it-yourself/#choose-who-you-are-asking-as">Run it yourself</a>.</p>
+<h2 id="a-full-cited-answer-streamed-and-checked">A full, cited answer, streamed and checked<a class="headerlink" href="#a-full-cited-answer-streamed-and-checked" title="Permanent link">¶</a></h2>
+<p>Pick <em>"What is an A1c test?"</em>. A five-stage stepper (pre-flight, read your
+record, draft, post-flight, outcome) tracks the run, and each graph step appears
+in the timeline the moment it finishes, with what it concluded: the classified
+intent and confidence, the policy decision, the tools called, and the
+post-flight verdict. The raw node name sits beneath each human label. Then the
+outcome card says <strong>what happened and who decided it</strong>, followed by the answer,
+a claim-by-claim check, and the cost.</p>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../../assets/screenshot-answer.png#only-light" data-desc-position="bottom"><img alt="The streamed, cited answer" src="../../assets/screenshot-answer.png#only-light"></a>
+<a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../../assets/screenshot-answer-dark.png#only-dark" data-desc-position="bottom"><img alt="The streamed, cited answer" src="../../assets/screenshot-answer-dark.png#only-dark"></a></p>
 <p>Vocabulary discipline reaches the pixel (§3.7):</p>
 <ul>
 <li>A result is <strong>"outside the reference range your lab reported (<code>x</code>–<code>y</code>)"</strong>,
   never "abnormal".</li>
-<li>The <strong>reading-level target is shown</strong>, so the assistant is adapting <em>with</em> the
-  reader, not silently.</li>
-<li>Every source is a <strong>clickable link</strong> — the MedlinePlus citation opens the real
-  page. A citation nobody can open is not a citation (§6.1).</li>
-<li>The per-node <strong>cost</strong> of the answer is on screen.</li>
+<li>The <strong>reading-level target and measured grade are shown</strong>, so the assistant is
+  adapting <em>with</em> the reader, not silently.</li>
+<li>Every education source is a <strong>clickable link</strong>. A citation nobody can open is
+  not a citation (§6.1).</li>
+<li>Each claim shows whether post-flight found evidence for it, and why.</li>
+<li>The per-step <strong>cost</strong> of the answer is on screen.</li>
 </ul>
-<h2 id="trigger-an-escalation-without-typing">Trigger an escalation — without typing<a class="headerlink" href="#trigger-an-escalation-without-typing" title="Permanent link">¶</a></h2>
-<p>One click runs <strong>case 4</strong>: a benign-sounding question asked over a critical
-value. Pre-flight allows it, but post-flight sees the value itself and escalates.
-The trace ends at <em>Holding the answer for clinician review</em> instead of
-<em>Publishing</em>, and the answer is shown clearly labelled <strong>pending</strong> — never as
-approved.</p>
-<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../../assets/screenshot-escalation.png" data-desc-position="bottom"><img alt="Case 4 — the answer is held for review" src="../../assets/screenshot-escalation.png"></a></p>
+<p>Each run has its own URL (<code>/?run=&lt;id&gt;</code>): a refresh or a shared link replays it
+from the store.</p>
+<h2 id="case-4-a-harmless-question-over-a-critical-value">Case 4: a harmless question over a critical value<a class="headerlink" href="#case-4-a-harmless-question-over-a-critical-value" title="Permanent link">¶</a></h2>
+<p><em>"What does my potassium of 6.9 mean?"</em> looks like ordinary lab education, and
+pre-flight allows it. But the record holds a planted critical potassium, and
+post-flight sees the retrieved value itself: it overrides the AI's draft with a
+templated, urgent message and links the published threshold it used.</p>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../../assets/screenshot-escalation.png#only-light" data-desc-position="bottom"><img alt="Case 4: the draft is overridden" src="../../assets/screenshot-escalation.png#only-light"></a>
+<a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../../assets/screenshot-escalation-dark.png#only-dark" data-desc-position="bottom"><img alt="Case 4: the draft is overridden" src="../../assets/screenshot-escalation-dark.png#only-dark"></a></p>
 <p>The guardrails escalate but never relax a restriction (§5.4): a clean draft over
-a dangerous value is still held.</p>
+a dangerous value is still not published.</p>
+<p>The two other examples stop <strong>before</strong> the AI reads anything: <em>"Should I stop
+taking my metformin?"</em> is refused and routed to the care team, and <em>"I have
+crushing chest pain…"</em> returns emergency guidance at once. The stepper marks
+the AI stages as skipped, which is the point.</p>
+<h2 id="follow-up-questions">Follow-up questions<a class="headerlink" href="#follow-up-questions" title="Permanent link">¶</a></h2>
+<p>Under a finished answer, <strong>Ask a follow-up</strong> continues the conversation. Say <em>"what
+about the one before that?"</em> and it is first rewritten into a question that stands on
+its own, shown as "Understood as…", and then checked exactly like any other question.
+Earlier turns fold away above. A follow-up stays with the same patient, and a
+symptom typed inside one still reaches emergency guidance. See
+<a href="../../run-it-yourself/#follow-up-questions">Run it yourself</a>.</p>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../../assets/screenshot-followup.png#only-light" data-desc-position="bottom"><img alt="A follow-up conversation" src="../../assets/screenshot-followup.png#only-light"></a>
+<a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../../assets/screenshot-followup-dark.png#only-dark" data-desc-position="bottom"><img alt="A follow-up conversation" src="../../assets/screenshot-followup-dark.png#only-dark"></a></p>
+<h2 id="held-for-a-clinician">Held for a clinician<a class="headerlink" href="#held-for-a-clinician" title="Permanent link">¶</a></h2>
+<p>When post-flight will not publish a draft on its own (an uncited clinical claim
+it could not repair, or wording an AI judge flags as directing the patient's care or
+contradicting the record) the run pauses and the patient sees the draft clearly labelled
+<strong>pending</strong>, never as approved.</p>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../../assets/screenshot-held.png#only-light" data-desc-position="bottom"><img alt="A draft held for a clinician" src="../../assets/screenshot-held.png#only-light"></a>
+<a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../../assets/screenshot-held-dark.png#only-dark" data-desc-position="bottom"><img alt="A draft held for a clinician" src="../../assets/screenshot-held-dark.png#only-dark"></a></p>
 <h2 id="the-clinician-review-queue">The clinician review queue<a class="headerlink" href="#the-clinician-review-queue" title="Permanent link">¶</a></h2>
-<p>A held answer waits in a reviewer queue. A clinician can approve it as written,
-edit it first, or decline — and that decision <strong>resumes the suspended
-conversation from its checkpoint</strong> (§5.10).</p>
-<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../../assets/screenshot-reviews.png" data-desc-position="bottom"><img alt="The clinician review queue" src="../../assets/screenshot-reviews.png"></a></p>
+<p>A held answer waits in a reviewer queue that says why it was held and what each
+action will do. A clinician can approve it as written, edit it first, or
+decline, and that decision <strong>resumes the suspended conversation from its
+checkpoint</strong> (§5.10). Two reviewers deciding at once cannot both resume it: the
+second gets a clear "already decided" message.</p>
+<p><a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../../assets/screenshot-reviews.png#only-light" data-desc-position="bottom"><img alt="The clinician review queue" src="../../assets/screenshot-reviews.png#only-light"></a>
+<a class="glightbox" data-type="image" data-width="auto" data-height="auto" href="../../assets/screenshot-reviews-dark.png#only-dark" data-desc-position="bottom"><img alt="The clinician review queue" src="../../assets/screenshot-reviews-dark.png#only-dark"></a></p>
+<p>The queue is usually empty, because a well-behaved model rarely produces a draft
+post-flight refuses to publish. <code>make seed-reviews</code> loads four scripted
+examples, each held for a different reason, so you can try each decision (see
+<a href="../../run-it-yourself/#demo-the-clinician-review-queue">Run it yourself</a>).</p>
+<p>The demo has no login, and the page says so. See
+<a href="../../run-it-yourself/#deploy">Run it yourself</a> for putting auth in front of it.</p>
 <h2 id="how-these-screenshots-stay-honest">How these screenshots stay honest<a class="headerlink" href="#how-these-screenshots-stay-honest" title="Permanent link">¶</a></h2>
-<p>They are captured by the same Playwright smoke test that verifies the UI, against
-the same network mocks (<code>make docs-screenshots</code>). A screenshot here therefore
-cannot silently drift from what the tested UI actually renders. The smoke test
-covers the loading, success, empty, and error states, the case-4 escalation, and
-opening a citation.</p>
+<p>They are captured by the same Playwright suite that verifies the UI, against
+the same network mocks (<code>make docs-screenshots</code>), in light and dark mode. A
+screenshot here therefore cannot silently drift from what the tested UI
+renders. The smoke tests cover the first paint (no run until asked), loading,
+each of the four outcomes, a held draft, replay by URL, empty, failed, rate
+limited and server-error states, and opening a citation.</p>
 
 
 

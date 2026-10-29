@@ -11,7 +11,7 @@
         <link rel="prev" href="../regulatory-basis/">
       
       
-        <link rel="next" href="../api/">
+        <link rel="next" href="../deploy/">
       
       
         
@@ -352,6 +352,25 @@
     
   
   Run it yourself
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../deploy/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Deploy to a server
 
       </a>
     </li>
@@ -1543,6 +1562,50 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#choose-who-you-are-asking-as" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Choose who you are asking as
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#follow-up-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Follow-up questions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#demo-the-clinician-review-queue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Demo the clinician review queue
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inspect-the-graph-in-langgraph-studio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inspect the graph in LangGraph Studio
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#check" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1564,10 +1627,48 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#deploy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deploy
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
       
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deploy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deploy to a server
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -1670,6 +1771,50 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#choose-who-you-are-asking-as" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Choose who you are asking as
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#follow-up-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Follow-up questions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#demo-the-clinician-review-queue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Demo the clinician review queue
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inspect-the-graph-in-langgraph-studio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inspect the graph in LangGraph Studio
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#check" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1685,6 +1830,17 @@
     <span class="md-ellipsis">
       
         Configuration worth knowing about
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deploy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deploy
       
     </span>
   </a>
@@ -1743,13 +1899,168 @@ generates the safety policy tables. It writes nothing outside <code>data/</code>
 unresolvable citation, or a reference-range row with no cited source, stops the
 build.</p>
 <h2 id="run">Run<a class="headerlink" href="#run" title="Permanent link">¶</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>make<span class="w"> </span>dev<span class="w">          </span><span class="c1"># http://localhost:8000  (docs at /docs)</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>make<span class="w"> </span>up<span class="w">           </span><span class="c1"># the same thing in Docker</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>make<span class="w"> </span>run<span class="w">          </span><span class="c1"># API on :8000 and the frontend on :3000 together</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>make<span class="w"> </span>dev<span class="w">          </span><span class="c1"># API only, http://localhost:8000  (docs at /docs)</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>make<span class="w"> </span>up<span class="w">           </span><span class="c1"># the API in Docker</span>
 </code></pre></div>
+<p>Nothing calls the model until you ask: the homepage explains the app and offers
+four example questions plus a free-text box. A live run takes roughly 15–40
+seconds; questions stopped at pre-flight finish in a second or two. Each run gets
+its own URL (<code>/?run=&lt;id&gt;</code>), so a refresh or a shared link replays it from the
+store.</p>
+<p>If the API restarts while a run is in flight, that run can never finish. On
+startup the API marks such runs <code>failed</code> ("interrupted by a server restart") and
+returns any review left mid-decision to <code>pending</code>, so the UI shows an error
+instead of spinning. This assumes <strong>one API process</strong> owns the run store; do not
+run several workers against the same <code>runs.db</code>.</p>
+<h2 id="choose-who-you-are-asking-as">Choose who you are asking as<a class="headerlink" href="#choose-who-you-are-asking-as" title="Permanent link">¶</a></h2>
+<p>The app has no sign-in, so the homepage asks <strong>"Who are you asking as?"</strong> and
+offers a handful of synthetic patients. They are picked at runtime from the record
+store by what each record can show off, ranked by how much history it has, so they
+stay correct when the data is rebuilt:</p>
+<table>
+<thead>
+<tr>
+<th>Persona</th>
+<th>Chosen as</th>
+<th>Good for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A full record</td>
+<td>The richest history in the data</td>
+<td>Asking about labs, medications and conditions</td>
+</tr>
+<tr>
+<td>A hidden critical value</td>
+<td>The patient the build planted a critical potassium on</td>
+<td>The safety override</td>
+</tr>
+<tr>
+<td>Basic health literacy</td>
+<td>The richest <em>other</em> basic-literacy patient with an A1c</td>
+<td>The easier reading target (grade 6) and its measured grade</td>
+</tr>
+<tr>
+<td>Spanish-speaking patient</td>
+<td>The richest Spanish-language patient with an A1c</td>
+<td>The stated-limitation reply</td>
+</tr>
+<tr>
+<td>A visit note with a planted instruction</td>
+<td>The patient the build planted an injected note on</td>
+<td>Showing a note is treated as data, not obeyed</td>
+</tr>
+</tbody>
+</table>
+<p>The two patients tied to planted data are whoever the data build planted the fact
+on, so their histories are not chosen for size; the cards show each record's size so
+you can see that. A role the data cannot fill is skipped, and a small store is
+topped up with its richest patients, so the list is never empty.</p>
+<p>The choice lives in the URL (<code>?patient=…</code>), so a shared link keeps who it was asked
+as, and every run and every held review shows its patient. The four example
+questions ask as the persona whose record they need.</p>
+<div class="admonition warning">
+<p class="admonition-title">A demo selector, not authentication</p>
+<p>Choosing a patient on the page is not the same as being that patient. The API
+only answers as these personas (<code>NAVIGATOR_DEMO_PATIENTS_ONLY</code>), which keeps a
+caller from reading arbitrary records, but it does not know who you are. Real
+use needs sign-in: the server would learn the patient from the session instead
+of from the request, and <code>GET /personas</code> and the picker would go away.</p>
+</div>
+<h2 id="follow-up-questions">Follow-up questions<a class="headerlink" href="#follow-up-questions" title="Permanent link">¶</a></h2>
+<p>An answer is not the end of the conversation. Under a finished answer there is an
+<strong>Ask a follow-up</strong> box, so you can say <em>"what about the one before that?"</em> or <em>"is
+that normal?"</em> and be understood. The earlier questions fold away above, each with its
+status, and <strong>Start a new conversation</strong> begins again.</p>
+<p>How it works, and why it is still safe:</p>
+<ul>
+<li><strong>A follow-up is an ordinary run.</strong> It goes through the same graph, the same
+  pre-flight gate, scoped tools and post-flight checks as any question. Nothing is
+  skipped because it is "only" a follow-up, and a held draft goes to the clinician queue
+  as usual.</li>
+<li><strong>One extra step, only when needed.</strong> A new first step, <code>contextualize</code>, rewrites a
+  message that depends on the earlier turns into a standalone question (<em>"Is that one
+  normal?"</em> becomes <em>"Is my A1c result of 2.4% on August 5, 2026, normal?"</em>). A first
+  question has no history, so it skips this step and costs nothing extra. The rewrite is
+  shown in the run ("Understood as…") so you can see how you were understood.</li>
+<li><strong>A rewrite cannot lower the safety decision.</strong> The deterministic red-flag screen
+  reads both your own words and the rewrite, the classifier is shown both, and language
+  is detected on what you typed. A symptom mentioned inside a follow-up still reaches
+  emergency guidance. If the rewrite fails, the run carries on with exactly what you
+  typed.</li>
+<li><strong>The patient never changes mid-conversation.</strong> A follow-up stays with the patient
+  the conversation began with; ask as someone else by starting a new conversation.</li>
+<li><strong>Only the latest answer can be followed up</strong>, and only once it has finished, so a
+  thread cannot fork. Answers held for a clinician are noted to the rewriter as "held",
+  never quoted.</li>
+<li><strong>Conversations are capped</strong> (<code>NAVIGATOR_MAX_CONVERSATION_TURNS</code>, default 8) and the
+  rewriter sees only the most recent turns (<code>NAVIGATOR_CONVERSATION_CONTEXT_TURNS</code>,
+  default 3), which bounds cost.</li>
+</ul>
+<p>Behind the scenes a conversation is a chain of runs (<code>conversation_id</code> and <code>turn</code> on
+each), and <code>GET /conversations/{id}/thread</code> lists a conversation's turns. Databases
+created before follow-ups existed are upgraded in place on the next start.</p>
+<h2 id="demo-the-clinician-review-queue">Demo the clinician review queue<a class="headerlink" href="#demo-the-clinician-review-queue" title="Permanent link">¶</a></h2>
+<p>Held answers only appear when post-flight refuses to publish a draft, which a
+well-behaved model rarely produces, so the queue is usually empty. To demonstrate
+the clinician's part, load four sample items:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>make<span class="w"> </span>seed-reviews
+</code></pre></div>
+<p>Refresh <code>/reviews</code> and you will find four drafts, each held for a different
+reason: one tells the patient what to do about their treatment, one contradicts
+the patient's actual A1c, one makes a clinical claim with no evidence behind it,
+and one is a safe "I don't have that, ask your care team" reply to a general
+question (<em>"What is the bad cholesterol?"</em>) that post-flight held because its
+only claim had nothing to cite. Approve, edit or decline each: a decision really resumes the paused run, and
+you can open "See how this draft was produced" to follow it.</p>
+<p>The drafts are <strong>scripted</strong>, not model output (it needs no API key and costs
+nothing), but they run through the real graph, the real post-flight checks and the
+real checkpoint store, and the text is built from the patient's real A1c result.
+Running it twice is safe (cases already seeded are skipped); add <code>--again</code> to
+create fresh copies after you have decided the first set:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>navigator.api.demo_seed<span class="w"> </span>--again
+</code></pre></div>
+<p>On a deployed server, run it inside the API container:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>compose.prod.yaml<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>navigator-api<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>navigator.api.demo_seed
+</code></pre></div>
+<h2 id="inspect-the-graph-in-langgraph-studio">Inspect the graph in LangGraph Studio<a class="headerlink" href="#inspect-the-graph-in-langgraph-studio" title="Permanent link">¶</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>dev<span class="w">   </span><span class="c1"># installs the langgraph CLI</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>make<span class="w"> </span>studio<span class="w">           </span><span class="c1"># local server on http://127.0.0.1:2024</span>
+</code></pre></div>
+<p><code>make studio</code> starts <code>langgraph dev</code> on the real navigator graph (the same
+construction the API uses, from <code>src/navigator/studio.py</code>, registered in
+<code>langgraph.json</code>). Open the Studio URL it prints
+(<code>https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:2024</code>), pick the
+<code>navigator</code> graph, and you can see all thirteen nodes, step through a run, inspect
+the state after each node, and edit state and replay.</p>
+<p>Studio starts a run from a state, not a question. Give it these three fields:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="p">{</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="nt">"question"</span><span class="p">:</span><span class="w"> </span><span class="s2">"What is an A1c test?"</span><span class="p">,</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span><span class="nt">"patient_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"&lt;a patient id from your record store&gt;"</span><span class="p">,</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">  </span><span class="nt">"run_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"studio-1"</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="p">}</span>
+</code></pre></div>
+<p>Get a patient id with:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">"from pathlib import Path; from navigator.store import RecordStore; print(RecordStore(Path('data/records.db')).patient_ids()[0])"</span>
+</code></pre></div>
+<p>Things to know:</p>
+<ul>
+<li>It needs the data built (<code>make data</code>) and <code>NAVIGATOR_OPENAI_API_KEY</code> in <code>.env</code>,
+  because it runs the real model.</li>
+<li>Studio supplies its own in-memory persistence, so the <code>enqueue_review</code>
+  interrupt pauses and resumes inside Studio (resume with
+  <code>{"action": "approve"}</code>), but nothing is written to <code>runs.db</code> or the review
+  queue, and nothing shows up in the web app.</li>
+<li>The local server needs no key. The Studio page itself is hosted by LangChain
+  and asks you to sign in to LangSmith in the browser.</li>
+<li>It is a development tool. Do not run it on a server.</li>
+</ul>
 <h2 id="check">Check<a class="headerlink" href="#check" title="Permanent link">¶</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>make<span class="w"> </span>check<span class="w">        </span><span class="c1"># ruff, mypy --strict, import-linter, pytest</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>make<span class="w"> </span><span class="nb">eval</span><span class="w">         </span><span class="c1"># layer 1 canonical regression set</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>make<span class="w"> </span>docs<span class="w">         </span><span class="c1"># this site, locally</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>make<span class="w"> </span>check<span class="w">        </span><span class="c1"># ruff, mypy --strict, import-linter, pytest</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>make<span class="w"> </span><span class="nb">eval</span><span class="w">         </span><span class="c1"># layer 1 canonical regression set</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>make<span class="w"> </span>docs<span class="w">         </span><span class="c1"># this site, locally</span>
 </code></pre></div>
 <h2 id="configuration-worth-knowing-about">Configuration worth knowing about<a class="headerlink" href="#configuration-worth-knowing-about" title="Permanent link">¶</a></h2>
 <table>
@@ -1776,9 +2087,60 @@ build.</p>
 <td><code>1.0</code></td>
 <td>Below this, the run repairs once before publishing</td>
 </tr>
+<tr>
+<td><code>NAVIGATOR_WRITE_RATE_LIMIT_PER_MINUTE</code></td>
+<td><code>10</code></td>
+<td>Per client IP, per route, on routes that start or resume a model run (<code>POST /conversations</code>, <code>POST /reviews/{id}/decision</code>)</td>
+</tr>
+<tr>
+<td><code>NAVIGATOR_READ_RATE_LIMIT_PER_MINUTE</code></td>
+<td><code>120</code></td>
+<td>Per client IP, per route, on reads and the event stream. One page view makes several of these</td>
+</tr>
+<tr>
+<td><code>NAVIGATOR_DEMO_PATIENTS_ONLY</code></td>
+<td><code>true</code></td>
+<td>The API only answers as a demonstration persona (see below). Set <code>false</code> to allow any patient id in the store, for evals or development</td>
+</tr>
+<tr>
+<td><code>NAVIGATOR_DEMO_PATIENT_ID</code></td>
+<td><em>(empty)</em></td>
+<td>The patient used when a request names none, and always allowed. Empty means the first persona</td>
+</tr>
+<tr>
+<td><code>NAVIGATOR_MAX_CONVERSATION_TURNS</code></td>
+<td><code>8</code></td>
+<td>Questions allowed in one conversation; a further follow-up is refused with a clear message</td>
+</tr>
+<tr>
+<td><code>NAVIGATOR_CONVERSATION_CONTEXT_TURNS</code></td>
+<td><code>3</code></td>
+<td>How many of the most recent turns the rewriter is shown</td>
+</tr>
+<tr>
+<td><code>NAVIGATOR_FRONTEND_ORIGINS</code></td>
+<td><code>["http://localhost:3000"]</code></td>
+<td>CORS allow-list; set it to the public frontend origin in production. In development (<code>NAVIGATOR_ENVIRONMENT=development</code>, the default) any <code>localhost</code> port is also accepted, so <code>next dev</code> moving to :3001 keeps working; production trusts only this list</td>
+</tr>
+<tr>
+<td><code>NAVIGATOR_RUN_STORE_PATH</code> / <code>NAVIGATOR_CHECKPOINT_DB_PATH</code></td>
+<td><code>data/runs.db</code> / <code>data/checkpoints.db</code></td>
+<td>Point these at throwaway files to try things without touching your run history</td>
+</tr>
 </tbody>
 </table>
 <p>There is no setting that points this application at a real record system.</p>
+<h2 id="deploy">Deploy<a class="headerlink" href="#deploy" title="Permanent link">¶</a></h2>
+<p>See <strong><a href="../deploy/">Deploy to a server</a></strong> for the full walkthrough: server and DNS
+prerequisites, getting the data onto the machine, <code>.env</code>, the reverse proxy,
+protecting the clinician review queue, updating, backups and troubleshooting.</p>
+<p>The two points that bite most often:</p>
+<ul>
+<li><code>WEB_PUBLIC_API_URL</code> and <code>WEB_PUBLIC_DOCS_URL</code> are baked into the web image at
+  <strong>build time</strong>; changing them requires <code>docker compose -f compose.prod.yaml up -d --build</code>.</li>
+<li>There is no login. Put basic auth at the proxy in front of <code>/reviews</code> and
+  <code>/api/reviews</code>, or anyone can decide a held answer.</li>
+</ul>
 
 
 
