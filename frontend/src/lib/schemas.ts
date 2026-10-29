@@ -59,3 +59,96 @@ export const TraceEndOutputSchema = z.object({
   status: z.string(),
   answer: z.record(z.string(), z.unknown()).nullable(),
 });
+
+// ---------------------------------------------------------------------------
+// Per-node event payloads (navigator.graph.nodes). Parsed leniently with
+// safeParse: the trace is explanatory, so an unexpected shape degrades to "no
+// detail" rather than breaking the page.
+
+export const RedFlagSchema = z.object({ category: z.string(), span: z.string() });
+
+export const IntentAssessmentSchema = z.object({
+  question_class: z.string(),
+  red_flags: z.array(RedFlagSchema).default([]),
+  confidence: z.number(),
+  rationale_span: z.string().optional(),
+});
+
+export const RuleMatchSchema = z.object({
+  rule_id: z.string(),
+  matched_span: z.string(),
+  negated: z.boolean().default(false),
+  attributed: z.boolean().default(false),
+});
+
+export const PolicyDecisionSchema = z.object({
+  action: z.string(),
+  band: z.string(),
+  rule_matches: z.array(RuleMatchSchema).default([]),
+  layer_agreement: z.boolean(),
+  tool_scope: z
+    .object({ allowed_tool_names: z.array(z.string()).default([]), row_cap: z.number() })
+    .optional(),
+  autonomy_level: z.string(),
+  template_id: z.string().nullable().optional(),
+  language_limitation: z.boolean().default(false),
+});
+
+export const EvidenceRecordSchema = z.object({
+  tool_call_id: z.string(),
+  tool_name: z.string(),
+});
+
+export const SecurityEventSchema = z.object({
+  kind: z.string(),
+  tool_name: z.string(),
+  requested: z.string(),
+  enforced: z.string(),
+});
+
+export const ClaimAnalysisSchema = z.object({
+  claim_id: z.string(),
+  supported: z.boolean(),
+  evidence_ref: z.string().nullable().optional(),
+  reason: z.string(),
+});
+
+export const CriticalFindingSchema = z.object({
+  analyte: z.string(),
+  value: z.number(),
+  unit: z.string(),
+  band: z.string(),
+  threshold: z.number(),
+  action: z.string(),
+  source_name: z.string().nullable().optional(),
+  source_url: z.string().nullable().optional(),
+});
+
+export const PostFlightResultSchema = z.object({
+  disposition: z.string(),
+  trigger: z.string().default("none"),
+  override_action: z.string().nullable().optional(),
+  critical_findings: z.array(CriticalFindingSchema).default([]),
+  claim_analyses: z.array(ClaimAnalysisSchema).default([]),
+  citation_coverage: z.number().default(1),
+  uncited_claim_ids: z.array(z.string()).default([]),
+  scope_judgement: z
+    .object({
+      diagnoses: z.boolean().default(false),
+      changes_medication: z.boolean().default(false),
+      directs_clinical_action: z.boolean().default(false),
+      contradicts_record: z.boolean().default(false),
+    })
+    .nullable()
+    .optional(),
+  evidence_pass: z.number().default(0),
+});
+
+export type IntentAssessment = z.infer<typeof IntentAssessmentSchema>;
+export type RuleMatch = z.infer<typeof RuleMatchSchema>;
+export type PolicyDecision = z.infer<typeof PolicyDecisionSchema>;
+export type EvidenceRecord = z.infer<typeof EvidenceRecordSchema>;
+export type SecurityEvent = z.infer<typeof SecurityEventSchema>;
+export type ClaimAnalysis = z.infer<typeof ClaimAnalysisSchema>;
+export type CriticalFinding = z.infer<typeof CriticalFindingSchema>;
+export type PostFlightResult = z.infer<typeof PostFlightResultSchema>;

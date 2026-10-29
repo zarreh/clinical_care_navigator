@@ -8,7 +8,9 @@ COPY . .
 
 # Inlined into the browser bundle at build time, so it must be the public URL.
 ARG NEXT_PUBLIC_API_BASE=http://localhost:8000
+ARG NEXT_PUBLIC_DOCS_URL=https://zarreh.ai/clinical_care_navigator/
 ENV NEXT_PUBLIC_API_BASE=$NEXT_PUBLIC_API_BASE \
+    NEXT_PUBLIC_DOCS_URL=$NEXT_PUBLIC_DOCS_URL \
     NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 

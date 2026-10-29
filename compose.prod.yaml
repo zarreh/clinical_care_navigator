@@ -24,6 +24,7 @@ services:
       context: ./frontend
       args:
         NEXT_PUBLIC_API_BASE: ${WEB_PUBLIC_API_URL:-http://localhost/api}
+        NEXT_PUBLIC_DOCS_URL: ${WEB_PUBLIC_DOCS_URL:-https://zarreh.ai/clinical_care_navigator/}
     depends_on:
       navigator-api:
         condition: service_healthy

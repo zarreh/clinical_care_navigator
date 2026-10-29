@@ -59,6 +59,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/conversations/{run_id}/thread": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Thread
+         * @description Every turn of the conversation this run belongs to, oldest first.
+         */
+        get: operations["get_thread_conversations__run_id__thread_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/conversations/{run_id}/events": {
         parameters: {
             query?: never;
@@ -93,6 +113,23 @@ export interface paths {
          * @description Streams the walking-skeleton graph node by node (Phase 0 proof).
          */
         post: operations["stream_answer_conversations_stream_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Personas */
+        get: operations["list_personas_personas_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -141,6 +178,10 @@ export interface components {
         ConversationResponse: {
             /** Id */
             id: string;
+            /** Conversation Id */
+            conversation_id: string;
+            /** Turn */
+            turn: number;
             /** Question */
             question: string;
             /** Patient Id */
@@ -188,6 +229,8 @@ export interface components {
             question: string;
             /** Patient Id */
             patient_id?: string | null;
+            /** Follow Up To */
+            follow_up_to?: string | null;
         };
         /** CreateConversationResponse */
         CreateConversationResponse: {
@@ -205,6 +248,49 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /**
+         * PersonaHistory
+         * @description Counts only: how much record this persona has to ask about.
+         */
+        PersonaHistory: {
+            /** Labs */
+            labs: number;
+            /** Analytes */
+            analytes: number;
+            /** Medications */
+            medications: number;
+            /** Conditions */
+            conditions: number;
+            /** Encounters */
+            encounters: number;
+            /** Notes */
+            notes: number;
+        };
+        /**
+         * PersonaResponse
+         * @description A demonstration patient a visitor can ask as (a demo selector, not a login).
+         */
+        PersonaResponse: {
+            /** Patient Id */
+            patient_id: string;
+            /** Role */
+            role: string;
+            /** Name */
+            name: string;
+            /** Age */
+            age: number | null;
+            /** Gender */
+            gender: string;
+            /** Language */
+            language: string;
+            /** Literacy */
+            literacy: string;
+            /** Headline */
+            headline: string;
+            /** Blurb */
+            blurb: string;
+            history: components["schemas"]["PersonaHistory"];
         };
         /** ReviewDecisionRequest */
         ReviewDecisionRequest: {
@@ -255,6 +341,29 @@ export interface components {
              * @default Architectural demonstration on fully synthetic data. Not a medical device. Does not diagnose. Not a substitute for care.
              */
             disclaimer: string;
+        };
+        /**
+         * ThreadResponse
+         * @description Every turn of the conversation a run belongs to, oldest first.
+         */
+        ThreadResponse: {
+            /** Conversation Id */
+            conversation_id: string;
+            /** Patient Id */
+            patient_id: string;
+            /** Turns */
+            turns: components["schemas"]["ThreadTurn"][];
+        };
+        /** ThreadTurn */
+        ThreadTurn: {
+            /** Run Id */
+            run_id: string;
+            /** Turn */
+            turn: number;
+            /** Question */
+            question: string;
+            /** Status */
+            status: string;
         };
         /** ValidationError */
         ValidationError: {
@@ -364,6 +473,37 @@ export interface operations {
             };
         };
     };
+    get_thread_conversations__run_id__thread_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThreadResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     stream_conversation_conversations__run_id__events_get: {
         parameters: {
             query?: never;
@@ -424,6 +564,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_personas_personas_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonaResponse"][];
                 };
             };
         };
