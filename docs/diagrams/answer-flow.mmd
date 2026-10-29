@@ -1,0 +1,11 @@
+graph TD
+  Q[Patient question] --> PG[Pre-flight gate<br/>deterministic screen + intent classifier]
+  PG -->|emergency / crisis / out of scope / decision-adjacent| TPL[Safe pre-written reply<br/>routes to the right person]
+  PG -->|allow, scoped| AG[Agent · scoped tools only]
+  AG --> PF[Post-flight<br/>critical values · citation coverage · scope judge]
+  PF -->|critical value or out of scope| TPL
+  PF -->|cannot be published on its own| ESC[Clinician review queue<br/>patient sees a labelled draft]
+  PF -->|pass| PUB[Publish · deterministic]
+  PUB --> OUT[Answer + citations + autonomy level]
+  ESC -->|clinician approves or edits| OUT
+  TPL --> RES[Templated reply to the patient]

@@ -32,17 +32,8 @@ That distinction is the whole app. *"What does my potassium of 6.9 mean?"* is a
 benign education question, so the pre-flight gate allows it. The retrieved value
 is a medical emergency, and only the post-flight half can know that.
 
-```mermaid
-graph TD
-  Q[Patient question] --> PG[Pre-flight gate<br/>deterministic screen + intent classifier]
-  PG -->|emergency / crisis / out of scope| OUT
-  PG -->|decision-adjacent| ESC[Clinician review queue]
-  PG -->|allow, scoped| AG[Agent · scoped tools only]
-  AG --> PF[Post-flight<br/>critical values · citation coverage · scope judge]
-  PF -->|escalate or downgrade| OUT
-  PF -->|pass| PUB[Publish · deterministic]
-  PUB --> OUT[Answer + citations + autonomy level]
-```
+<!-- Source: docs/diagrams/answer-flow.mmd. Regenerate with `make docs-diagrams`. -->
+![How a question flows: pre-flight gate, scoped agent, post-flight checks, then publish, a clinician review queue, or a safe pre-written reply](docs/assets/diagrams/answer-flow.svg)
 
 ## Status
 
@@ -91,10 +82,15 @@ uv sync --extra dev
 cp .env.example .env      # add NAVIGATOR_OPENAI_API_KEY
 make data                 # build the synthetic record + education stores
 make dev                  # http://localhost:8000/healthz
+make run                  # API on :8000 and the web app on :3000
+make studio               # LangGraph Studio on the real graph (http://127.0.0.1:2024)
 make check                # ruff, mypy --strict, import-linter, pytest
 make eval                 # Layer 1 canonical eval, oracle (18 runs, no key, gates PRs)
 make eval-live            # the same cases against the real model (needs a key)
 ```
+
+To put it on a server behind HTTPS, follow
+[`docs/deploy.md`](docs/deploy.md) (published as "Deploy to a server").
 
 ## Licence and provenance
 

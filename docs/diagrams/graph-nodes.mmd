@@ -1,0 +1,22 @@
+graph TD
+  IN[intake] --> CX[contextualize<br/>follow-ups only]
+  CX --> SR[screen_rules<br/>deterministic]
+  CX --> CI[classify_intent<br/>one model call]
+  CX --> DL[detect_language]
+  SR --> RP[resolve_policy<br/>deterministic]
+  CI --> RP
+  DL --> RP
+  RP -->|emergency, crisis, out of scope, decision-adjacent| TR[template_response]
+  RP -->|allow, scoped| INV[investigate ⇄ scoped tools]
+  INV -->|budget breached| BE[budget_exceeded]
+  INV --> DR[draft_answer]
+  DR --> EC[extract_claims]
+  EC --> PF[post_flight]
+  PF -->|uncited, retry once| INV
+  PF -->|escalate| TR
+  PF -->|review| EQ[enqueue_review<br/>pauses for a clinician]
+  PF -->|publish| PUB[publish<br/>deterministic]
+  TR --> DONE([end])
+  BE --> DONE
+  EQ --> DONE
+  PUB --> DONE

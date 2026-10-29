@@ -24,17 +24,8 @@ an auditable refusal path.
 
 ## What this shows
 
-```mermaid
-graph TD
-  Q[Patient question] --> PG[Pre-flight gate<br/>deterministic screen + intent classifier]
-  PG -->|emergency / crisis / out of scope| OUT
-  PG -->|decision-adjacent| ESC[Clinician review queue]
-  PG -->|allow, scoped| AG[Agent · scoped tools only]
-  AG --> PF[Post-flight<br/>critical values · citation coverage · scope judge]
-  PF -->|escalate or downgrade| OUT
-  PF -->|pass| PUB[Publish · deterministic]
-  PUB --> OUT[Answer + citations + autonomy level]
-```
+<!-- Source: docs/diagrams/answer-flow.mmd. Regenerate with `make docs-diagrams`. -->
+![How a question flows: pre-flight gate, scoped agent, post-flight checks, then publish, a clinician review queue, or a safe pre-written reply](assets/diagrams/answer-flow.svg)
 
 Policy runs **before** the model and **after** it, and the second half is not a
 replay of the first — it assesses the retrieved evidence and the drafted answer

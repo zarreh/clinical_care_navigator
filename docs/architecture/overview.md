@@ -8,27 +8,8 @@
 
 ## The graph
 
-```mermaid
-graph TD
-  IN[intake] --> SR[screen_rules<br/>deterministic]
-  IN --> CI[classify_intent<br/>one model call]
-  SR --> RP[resolve_policy<br/>deterministic]
-  CI --> RP
-  RP -->|emergency| T1[template]
-  RP -->|crisis| T2[template]
-  RP -->|out of scope| T3[template]
-  RP -->|decision-adjacent| EQ[enqueue_review]
-  RP -->|allow, scoped| INV[investigate ⇄ scoped tools]
-  INV --> DR[draft_answer]
-  DR --> EC[extract_claims]
-  EC --> PF[post_flight]
-  PF -->|uncited, ≤1| INV
-  PF --> PUB[publish<br/>deterministic]
-  T1 --> PUB
-  T2 --> PUB
-  T3 --> PUB
-  EQ --> PUB
-```
+<!-- Source: docs/diagrams/graph-nodes.mmd. Regenerate with `make docs-diagrams`. -->
+![The navigator graph: intake and contextualize lead into screen_rules, classify_intent and detect_language, which join at resolve_policy, then investigate, draft, extract claims and post_flight, ending in template_response, enqueue_review, publish or budget_exceeded](../assets/diagrams/graph-nodes.svg)
 
 ## Five properties this is designed to have
 
@@ -38,7 +19,9 @@ graph TD
    is enforced by topology, not by filtering afterwards.
 3. **One model call before any evidence is gathered.** `screen_rules` and
    `resolve_policy` are code. Don't spend a model call on a decision an `if` can
-   make.
+   make. (A *follow-up* question adds one cheap call first, `contextualize`, to
+   make it stand on its own; a first question never pays for it. See
+   [Follow-up questions](../run-it-yourself.md#follow-up-questions).)
 4. **Cheap checks run before expensive ones.** Critical-value and citation
    checks are pure code and can short-circuit the judge.
 5. **Publication is deterministic.** `publish` emits the already-judged draft; it

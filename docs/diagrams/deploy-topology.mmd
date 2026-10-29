@@ -1,0 +1,5 @@
+flowchart LR
+    B[Browser] -->|HTTPS 443| C[Caddy<br/>reverse proxy]
+    C -->|"/"| W[navigator-web<br/>Next.js :3000]
+    C -->|"/api/*  (prefix stripped)"| A[navigator-api<br/>FastAPI :8000]
+    A --- D[(data/<br/>SQLite files)]

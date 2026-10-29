@@ -1,4 +1,4 @@
-.PHONY: run dev test lint typecheck imports check eval eval-live up down data docs docs-assets docs-screenshots frontend-dev frontend-build frontend-types frontend-e2e
+.PHONY: run dev studio seed-reviews test lint typecheck imports check eval eval-live up down data docs docs-assets docs-diagrams docs-screenshots frontend-dev frontend-build frontend-types frontend-e2e
 
 # API on :8000 and frontend on :3000; Ctrl-C stops both.
 run:
@@ -10,6 +10,17 @@ run:
 
 dev:
 	uv run uvicorn navigator.api.main:app --reload --port 8000
+
+# Adds four sample drafts to the clinician review queue so the review flow can be demoed.
+# Scripted drafts through the real graph and checkpoints; no model call, no key needed.
+seed-reviews:
+	uv run python -m navigator.api.demo_seed
+
+# LangGraph Studio on the real graph. Needs the data built and a model key; opens
+# https://smith.langchain.com/studio against a local server (no LangSmith account
+# key is required for the local server itself).
+studio:
+	uv run langgraph dev --no-browser --port 2024
 
 test:
 	uv run pytest -v
@@ -49,6 +60,11 @@ data:
 
 docs:
 	uv run mkdocs serve
+
+# Renders docs/diagrams/*.mmd to static SVGs in docs/assets/diagrams/ (the docs embed images,
+# so they show in editor previews and offline, not only where Mermaid runs client-side).
+docs-diagrams:
+	cd tools/diagrams && npm install --no-audit --no-fund && npm run render
 
 docs-assets:
 	PYTHONPATH=. uv run python docs/generate_plots.py

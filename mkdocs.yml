@@ -10,6 +10,7 @@ exclude_docs: |
   HARVEST.md
   generate_plots.py
   assets/plot_style.mplstyle
+  /diagrams/
   PORTFOLIO_CARD_DRAFT.md
   WRITING_POST_DRAFT.md
 
@@ -52,6 +53,8 @@ markdown_extensions:
   - md_in_html
   - tables
   - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
   - pymdownx.highlight:
       anchor_linenums: true
   - pymdownx.inlinehilite
@@ -97,4 +100,5 @@ nav:
       - Post-flight overrides: evidence/post-flight-overrides.md
   - Regulatory basis: regulatory-basis.md
   - Run it yourself: run-it-yourself.md
+  - Deploy to a server: deploy.md
   - API: api.md

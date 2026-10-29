@@ -1,0 +1,13 @@
+{
+  "name": "clinical-care-navigator-diagrams",
+  "private": true,
+  "description": "Renders docs/diagrams/*.mmd to static SVGs in docs/assets/diagrams/ (make docs-diagrams)",
+  "type": "module",
+  "scripts": {
+    "render": "node render.mjs"
+  },
+  "dependencies": {
+    "mermaid": "^11.4.0",
+    "playwright": "1.62.1"
+  }
+}
