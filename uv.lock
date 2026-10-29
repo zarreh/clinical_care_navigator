@@ -2216,7 +2216,7 @@ requires-dist = [
     { name = "structlog", specifier = ">=24.4" },
     { name = "textstat", specifier = ">=0.7" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.32" },
-    { name = "zarreh-agentkit", git = "https://github.com/zarreh/zarreh_agentkit.git?tag=v0.2.0" },
+    { name = "zarreh-agentkit", git = "https://github.com/zarreh/zarreh_agentkit.git?tag=v0.5.0" },
 ]
 provides-extras = ["dev", "docs"]
 
@@ -4101,12 +4101,13 @@ wheels = [
 
 [[package]]
 name = "zarreh-agentkit"
-version = "0.2.0"
-source = { git = "https://github.com/zarreh/zarreh_agentkit.git?tag=v0.2.0#6456743e258f99922933d24d6b2f4c077ccdb788" }
+version = "0.5.0"
+source = { git = "https://github.com/zarreh/zarreh_agentkit.git?tag=v0.5.0#2e7c3bafb17082f3d3f135e63b40acc4bb9f73bb" }
 dependencies = [
     { name = "fastapi" },
     { name = "langchain-core" },
     { name = "langgraph" },
+    { name = "langsmith" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "slowapi" },

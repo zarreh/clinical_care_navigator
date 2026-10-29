@@ -1438,3 +1438,11 @@ without credentials (`git` added to the builder stage).
 11 Playwright specs pass. The Docker image itself was not built (daemon not
 running); `uv pip install .`, the command the Dockerfile runs, resolves the
 dependency in a scratch environment.
+
+**2026-10-28 — Onto `zarreh-agentkit` v0.5.0.** The two copies that stayed local
+at v0.2.0 (log configuration, SSE bridge) and the cost handler and tracing
+builder are gone: the library took the fixes A3 had made (v0.2.1, v0.3.0). The
+run store's events/costs, the replay stream, the prompt loader, `/healthz` and
+the injection screen are now the library's too (v0.4.0, v0.5.0). `docs/HARVEST.md`
+(Extraction status) lists what deliberately stays local. `make check` green
+(279 tests), `make eval` 100%.

@@ -23,23 +23,22 @@ import structlog
 from langchain_core.callbacks.base import BaseCallbackHandler
 from langchain_core.runnables import RunnableConfig
 from langgraph.types import Command
-from pydantic import BaseModel
+from zarreh_agentkit.cost import CostTrackingHandler
+from zarreh_agentkit.serialization import iter_node_outputs, json_default
 
 from navigator.graph.builder import NavigatorGraph
-from navigator.graph.cost_tracking import CostTrackingHandler
 from navigator.graph.state import NavigatorState
 from navigator.observability import build_tracing_callbacks, get_logger
 from navigator.schemas.answer import PatientAnswer
 from navigator.settings import Settings
-from navigator.store.models import CostEntry, ReviewItem
+from navigator.store.models import ReviewItem
 from navigator.store.review_queue import ReviewQueue
 from navigator.store.run_store import RunStore
 
 logger = get_logger(__name__)
 
-# The genuine node boundaries. astream_events also emits on_chain_end for
-# internal LCEL sub-steps whose names can collide with a node's langgraph_node
-# tag, so filtering on name alone is not enough — see the name == node check.
+# The genuine node boundaries; iter_node_outputs also requires
+# name == langgraph_node, which drops routing predicates and LCEL sub-steps.
 _GRAPH_NODE_NAMES = frozenset(
     {
         "intake",
@@ -58,19 +57,6 @@ _GRAPH_NODE_NAMES = frozenset(
         "budget_exceeded",
     }
 )
-
-
-def _json_default(value: object) -> object:
-    if isinstance(value, BaseModel):
-        return value.model_dump(mode="json")
-    return str(value)
-
-
-def _to_store_costs(handler: CostTrackingHandler) -> list[CostEntry]:
-    return [
-        CostEntry(e.node, e.model, e.prompt_tokens, e.completion_tokens, e.cost_usd)
-        for e in handler.entries
-    ]
 
 
 async def execute_conversation(
@@ -105,22 +91,17 @@ async def execute_conversation(
         final_state: dict[str, object] = {}
         sequence = 0
 
-        async for event in graph.astream_events(initial, version="v2", config=config):
-            if event["event"] != "on_chain_end":
-                continue
-            metadata = event.get("metadata") or {}
-            node_name = metadata.get("langgraph_node")
-            if node_name not in _GRAPH_NODE_NAMES or event.get("name") != node_name:
-                continue
-            output = event.get("data", {}).get("output")
+        async for node_name, output in iter_node_outputs(
+            graph, initial, config=config, node_names=_GRAPH_NODE_NAMES
+        ):
             if isinstance(output, dict):
                 final_state.update(output)
             run_store.append_event(
-                run_id, sequence, node_name, json.dumps(output, default=_json_default)
+                run_id, sequence, node_name, json.dumps(output, default=json_default)
             )
             sequence += 1
 
-        run_store.record_costs(run_id, _to_store_costs(cost_handler))
+        run_store.record_costs(run_id, cost_handler.entries)
 
         interrupt_payload = await _pending_interrupt(graph, config)
         if interrupt_payload is not None:
@@ -185,7 +166,7 @@ def _enqueue_review(
             str(payload["override_action"]) if payload.get("override_action") is not None else None
         ),
         body=body,
-        payload_json=json.dumps(payload, default=_json_default),
+        payload_json=json.dumps(payload, default=json_default),
     )
     run_store.complete_run(
         run_id, status="pending_review", answer_kind="pending_review", answer_json=answer_json
@@ -247,23 +228,16 @@ async def resume_conversation(
         existing = run_store.get_events(run_id)
         sequence = existing[-1].sequence + 1 if existing else 0
         final_state: dict[str, object] = {}
-        async for event in graph.astream_events(
-            Command(resume=resume_value), version="v2", config=config
+        async for node_name, output in iter_node_outputs(
+            graph, Command(resume=resume_value), config=config, node_names=_GRAPH_NODE_NAMES
         ):
-            if event["event"] != "on_chain_end":
-                continue
-            metadata = event.get("metadata") or {}
-            node_name = metadata.get("langgraph_node")
-            if node_name not in _GRAPH_NODE_NAMES or event.get("name") != node_name:
-                continue
-            output = event.get("data", {}).get("output")
             if isinstance(output, dict):
                 final_state.update(output)
             run_store.append_event(
-                run_id, sequence, node_name, json.dumps(output, default=_json_default)
+                run_id, sequence, node_name, json.dumps(output, default=json_default)
             )
             sequence += 1
-        run_store.record_costs(run_id, _to_store_costs(cost_handler))
+        run_store.record_costs(run_id, cost_handler.entries)
         _finalize(run_store, run_id, final_state)
     except Exception as exc:  # noqa: BLE001 — any failure must mark the run failed
         logger.error("resume_failed", run_id=run_id, error=str(exc))
