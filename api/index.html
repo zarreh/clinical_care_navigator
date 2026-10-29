@@ -1647,17 +1647,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#navigator.api.streaming.stream_graph_events" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        stream_graph_events
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#graph" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1806,17 +1795,6 @@
     <span class="md-ellipsis">
       
         stream_conversation_events
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#navigator.api.streaming.stream_graph_events" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        stream_graph_events
       
     </span>
   </a>
@@ -2172,10 +2150,6 @@ decided), which the frontend shows as-is.</p>
 <h2 id="navigator.api.streaming.stream_conversation_events" class="doc doc-heading">
             <code class="highlight language-python"><span class="n">stream_conversation_events</span><span class="p">(</span><span class="n">run_store</span><span class="p">,</span> <span class="n">run_id</span><span class="p">,</span> <span class="n">max_wait_seconds</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-async"><code>async</code></small>
-  </span>
-
 <a href="#navigator.api.streaming.stream_conversation_events" class="headerlink" title="Permanent link">¶</a></h2>
 
 
@@ -2194,107 +2168,7 @@ connection open forever.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/navigator/api/streaming.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tbody><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-32">32</a></span>
-<span class="normal"><a href="#__codelineno-0-33">33</a></span>
-<span class="normal"><a href="#__codelineno-0-34">34</a></span>
-<span class="normal"><a href="#__codelineno-0-35">35</a></span>
-<span class="normal"><a href="#__codelineno-0-36">36</a></span>
-<span class="normal"><a href="#__codelineno-0-37">37</a></span>
-<span class="normal"><a href="#__codelineno-0-38">38</a></span>
-<span class="normal"><a href="#__codelineno-0-39">39</a></span>
-<span class="normal"><a href="#__codelineno-0-40">40</a></span>
-<span class="normal"><a href="#__codelineno-0-41">41</a></span>
-<span class="normal"><a href="#__codelineno-0-42">42</a></span>
-<span class="normal"><a href="#__codelineno-0-43">43</a></span>
-<span class="normal"><a href="#__codelineno-0-44">44</a></span>
-<span class="normal"><a href="#__codelineno-0-45">45</a></span>
-<span class="normal"><a href="#__codelineno-0-46">46</a></span>
-<span class="normal"><a href="#__codelineno-0-47">47</a></span>
-<span class="normal"><a href="#__codelineno-0-48">48</a></span>
-<span class="normal"><a href="#__codelineno-0-49">49</a></span>
-<span class="normal"><a href="#__codelineno-0-50">50</a></span>
-<span class="normal"><a href="#__codelineno-0-51">51</a></span>
-<span class="normal"><a href="#__codelineno-0-52">52</a></span>
-<span class="normal"><a href="#__codelineno-0-53">53</a></span>
-<span class="normal"><a href="#__codelineno-0-54">54</a></span>
-<span class="normal"><a href="#__codelineno-0-55">55</a></span>
-<span class="normal"><a href="#__codelineno-0-56">56</a></span>
-<span class="normal"><a href="#__codelineno-0-57">57</a></span>
-<span class="normal"><a href="#__codelineno-0-58">58</a></span>
-<span class="normal"><a href="#__codelineno-0-59">59</a></span>
-<span class="normal"><a href="#__codelineno-0-60">60</a></span>
-<span class="normal"><a href="#__codelineno-0-61">61</a></span>
-<span class="normal"><a href="#__codelineno-0-62">62</a></span>
-<span class="normal"><a href="#__codelineno-0-63">63</a></span>
-<span class="normal"><a href="#__codelineno-0-64">64</a></span>
-<span class="normal"><a href="#__codelineno-0-65">65</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-32" name="__codelineno-0-32"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">stream_conversation_events</span><span class="p">(</span>
-<a id="__codelineno-0-33" name="__codelineno-0-33"></a>    <span class="n">run_store</span><span class="p">:</span> <span class="n">RunStore</span><span class="p">,</span> <span class="n">run_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">max_wait_seconds</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-34" name="__codelineno-0-34"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncIterator</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-<a id="__codelineno-0-35" name="__codelineno-0-35"></a><span class="w">    </span><span class="sd">"""Replays every event already persisted for a conversation, then — while the</span>
-<a id="__codelineno-0-36" name="__codelineno-0-36"></a><span class="sd">    run is still executing — tails newly-appended events until it reaches a</span>
-<a id="__codelineno-0-37" name="__codelineno-0-37"></a><span class="sd">    terminal status. Works identically whether the patient connects the instant a</span>
-<a id="__codelineno-0-38" name="__codelineno-0-38"></a><span class="sd">    run starts or reconnects long after it finished (docs/PLAN.md §5.8).</span>
-<a id="__codelineno-0-39" name="__codelineno-0-39"></a>
-<a id="__codelineno-0-40" name="__codelineno-0-40"></a><span class="sd">    These events are the patient's own record and are deliberately not redacted;</span>
-<a id="__codelineno-0-41" name="__codelineno-0-41"></a><span class="sd">    redaction guards the log/trace boundary, not the answer a patient reads (§5.7).</span>
-<a id="__codelineno-0-42" name="__codelineno-0-42"></a>
-<a id="__codelineno-0-43" name="__codelineno-0-43"></a><span class="sd">    ``max_wait_seconds`` bounds the tail: a run that never reaches a terminal</span>
-<a id="__codelineno-0-44" name="__codelineno-0-44"></a><span class="sd">    status ends the stream with its current status rather than holding the</span>
-<a id="__codelineno-0-45" name="__codelineno-0-45"></a><span class="sd">    connection open forever.</span>
-<a id="__codelineno-0-46" name="__codelineno-0-46"></a><span class="sd">    """</span>
-<a id="__codelineno-0-47" name="__codelineno-0-47"></a>    <span class="n">loop</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">get_running_loop</span><span class="p">()</span>
-<a id="__codelineno-0-48" name="__codelineno-0-48"></a>    <span class="n">deadline</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">max_wait_seconds</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">loop</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">+</span> <span class="n">max_wait_seconds</span>
-<a id="__codelineno-0-49" name="__codelineno-0-49"></a>    <span class="n">last_sequence</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
-<a id="__codelineno-0-50" name="__codelineno-0-50"></a>    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-<a id="__codelineno-0-51" name="__codelineno-0-51"></a>        <span class="n">events</span> <span class="o">=</span> <span class="n">run_store</span><span class="o">.</span><span class="n">get_events</span><span class="p">(</span><span class="n">run_id</span><span class="p">,</span> <span class="n">after_sequence</span><span class="o">=</span><span class="n">last_sequence</span><span class="p">)</span>
-<a id="__codelineno-0-52" name="__codelineno-0-52"></a>        <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">events</span><span class="p">:</span>
-<a id="__codelineno-0-53" name="__codelineno-0-53"></a>            <span class="k">yield</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">"node"</span><span class="p">:</span> <span class="n">event</span><span class="o">.</span><span class="n">node</span><span class="p">,</span> <span class="s2">"output"</span><span class="p">:</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">payload_json</span><span class="p">)})</span>
-<a id="__codelineno-0-54" name="__codelineno-0-54"></a>            <span class="n">last_sequence</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">sequence</span>
-<a id="__codelineno-0-55" name="__codelineno-0-55"></a>
-<a id="__codelineno-0-56" name="__codelineno-0-56"></a>        <span class="n">run</span> <span class="o">=</span> <span class="n">run_store</span><span class="o">.</span><span class="n">get_run</span><span class="p">(</span><span class="n">run_id</span><span class="p">)</span>
-<a id="__codelineno-0-57" name="__codelineno-0-57"></a>        <span class="k">if</span> <span class="n">run</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">run</span><span class="o">.</span><span class="n">status</span> <span class="o">!=</span> <span class="s2">"running"</span><span class="p">:</span>
-<a id="__codelineno-0-58" name="__codelineno-0-58"></a>            <span class="k">break</span>
-<a id="__codelineno-0-59" name="__codelineno-0-59"></a>        <span class="k">if</span> <span class="n">deadline</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">loop</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="n">deadline</span><span class="p">:</span>
-<a id="__codelineno-0-60" name="__codelineno-0-60"></a>            <span class="k">break</span>
-<a id="__codelineno-0-61" name="__codelineno-0-61"></a>        <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">_POLL_INTERVAL_SECONDS</span><span class="p">)</span>
-<a id="__codelineno-0-62" name="__codelineno-0-62"></a>
-<a id="__codelineno-0-63" name="__codelineno-0-63"></a>    <span class="n">status</span> <span class="o">=</span> <span class="n">run</span><span class="o">.</span><span class="n">status</span> <span class="k">if</span> <span class="n">run</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">"not_found"</span>
-<a id="__codelineno-0-64" name="__codelineno-0-64"></a>    <span class="n">answer</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">run</span><span class="o">.</span><span class="n">answer_json</span><span class="p">)</span> <span class="k">if</span> <span class="n">run</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">run</span><span class="o">.</span><span class="n">answer_json</span> <span class="k">else</span> <span class="kc">None</span>
-<a id="__codelineno-0-65" name="__codelineno-0-65"></a>    <span class="k">yield</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">"node"</span><span class="p">:</span> <span class="s2">"__end__"</span><span class="p">,</span> <span class="s2">"output"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"status"</span><span class="p">:</span> <span class="n">status</span><span class="p">,</span> <span class="s2">"answer"</span><span class="p">:</span> <span class="n">answer</span><span class="p">}})</span>
-</code></pre></div></td></tr></tbody></table></div>
-            </details>
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-function">
-
-
-<h2 id="navigator.api.streaming.stream_graph_events" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">stream_graph_events</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">initial_state</span><span class="p">)</span></code>
-
-  <span class="doc doc-labels">
-      <small class="doc doc-label doc-label-async"><code>async</code></small>
-  </span>
-
-<a href="#navigator.api.streaming.stream_graph_events" class="headerlink" title="Permanent link">¶</a></h2>
-
-
-    <div class="doc doc-contents ">
-
-        <p>Bridges a LangGraph run to Server-Sent Events, one event per node step.</p>
-<p>The node filter is <code>name == metadata["langgraph_node"]</code> rather than a
-presence check on <code>langgraph_node</code>: conditional-edge routing functions also
-emit <code>on_chain_end</code> with the <em>source</em> node in their metadata, under their
-own function name.</p>
-
-
-            <details class="mkdocstrings-source">
-              <summary>Source code in <code>src/navigator/api/streaming.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tbody><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-12">12</a></span>
-<span class="normal"><a href="#__codelineno-0-13">13</a></span>
-<span class="normal"><a href="#__codelineno-0-14">14</a></span>
-<span class="normal"><a href="#__codelineno-0-15">15</a></span>
+              <div class="highlight"><table class="highlighttable"><tbody><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-15">15</a></span>
 <span class="normal"><a href="#__codelineno-0-16">16</a></span>
 <span class="normal"><a href="#__codelineno-0-17">17</a></span>
 <span class="normal"><a href="#__codelineno-0-18">18</a></span>
@@ -2308,24 +2182,47 @@ own function name.</p>
 <span class="normal"><a href="#__codelineno-0-26">26</a></span>
 <span class="normal"><a href="#__codelineno-0-27">27</a></span>
 <span class="normal"><a href="#__codelineno-0-28">28</a></span>
-<span class="normal"><a href="#__codelineno-0-29">29</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-12" name="__codelineno-0-12"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">stream_graph_events</span><span class="p">(</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13"></a>    <span class="n">graph</span><span class="p">:</span> <span class="n">SkeletonGraph</span><span class="p">,</span> <span class="n">initial_state</span><span class="p">:</span> <span class="n">SkeletonState</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncIterator</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15"></a><span class="w">    </span><span class="sd">"""Bridges a LangGraph run to Server-Sent Events, one event per node step.</span>
-<a id="__codelineno-0-16" name="__codelineno-0-16"></a>
-<a id="__codelineno-0-17" name="__codelineno-0-17"></a><span class="sd">    The node filter is `name == metadata["langgraph_node"]` rather than a</span>
-<a id="__codelineno-0-18" name="__codelineno-0-18"></a><span class="sd">    presence check on `langgraph_node`: conditional-edge routing functions also</span>
-<a id="__codelineno-0-19" name="__codelineno-0-19"></a><span class="sd">    emit `on_chain_end` with the *source* node in their metadata, under their</span>
-<a id="__codelineno-0-20" name="__codelineno-0-20"></a><span class="sd">    own function name.</span>
-<a id="__codelineno-0-21" name="__codelineno-0-21"></a><span class="sd">    """</span>
-<a id="__codelineno-0-22" name="__codelineno-0-22"></a>    <span class="k">async</span> <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">astream_events</span><span class="p">(</span><span class="n">initial_state</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="s2">"v2"</span><span class="p">):</span>
-<a id="__codelineno-0-23" name="__codelineno-0-23"></a>        <span class="k">if</span> <span class="n">event</span><span class="p">[</span><span class="s2">"event"</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">"on_chain_end"</span><span class="p">:</span>
-<a id="__codelineno-0-24" name="__codelineno-0-24"></a>            <span class="k">continue</span>
-<a id="__codelineno-0-25" name="__codelineno-0-25"></a>        <span class="n">node</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"metadata"</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"langgraph_node"</span><span class="p">)</span>
-<a id="__codelineno-0-26" name="__codelineno-0-26"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">node</span> <span class="ow">or</span> <span class="n">event</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"name"</span><span class="p">)</span> <span class="o">!=</span> <span class="n">node</span><span class="p">:</span>
-<a id="__codelineno-0-27" name="__codelineno-0-27"></a>            <span class="k">continue</span>
-<a id="__codelineno-0-28" name="__codelineno-0-28"></a>        <span class="k">yield</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">"node"</span><span class="p">:</span> <span class="n">node</span><span class="p">,</span> <span class="s2">"output"</span><span class="p">:</span> <span class="n">event</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"data"</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"output"</span><span class="p">)},</span> <span class="n">default</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
-<a id="__codelineno-0-29" name="__codelineno-0-29"></a>    <span class="k">yield</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">"node"</span><span class="p">:</span> <span class="s2">"__end__"</span><span class="p">,</span> <span class="s2">"output"</span><span class="p">:</span> <span class="kc">None</span><span class="p">})</span>
+<span class="normal"><a href="#__codelineno-0-29">29</a></span>
+<span class="normal"><a href="#__codelineno-0-30">30</a></span>
+<span class="normal"><a href="#__codelineno-0-31">31</a></span>
+<span class="normal"><a href="#__codelineno-0-32">32</a></span>
+<span class="normal"><a href="#__codelineno-0-33">33</a></span>
+<span class="normal"><a href="#__codelineno-0-34">34</a></span>
+<span class="normal"><a href="#__codelineno-0-35">35</a></span>
+<span class="normal"><a href="#__codelineno-0-36">36</a></span>
+<span class="normal"><a href="#__codelineno-0-37">37</a></span>
+<span class="normal"><a href="#__codelineno-0-38">38</a></span>
+<span class="normal"><a href="#__codelineno-0-39">39</a></span>
+<span class="normal"><a href="#__codelineno-0-40">40</a></span>
+<span class="normal"><a href="#__codelineno-0-41">41</a></span>
+<span class="normal"><a href="#__codelineno-0-42">42</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-15" name="__codelineno-0-15"></a><span class="k">def</span><span class="w"> </span><span class="nf">stream_conversation_events</span><span class="p">(</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16"></a>    <span class="n">run_store</span><span class="p">:</span> <span class="n">RunStore</span><span class="p">,</span> <span class="n">run_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">max_wait_seconds</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncIterator</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18"></a><span class="w">    </span><span class="sd">"""Replays every event already persisted for a conversation, then — while the</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19"></a><span class="sd">    run is still executing — tails newly-appended events until it reaches a</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20"></a><span class="sd">    terminal status. Works identically whether the patient connects the instant a</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21"></a><span class="sd">    run starts or reconnects long after it finished (docs/PLAN.md §5.8).</span>
+<a id="__codelineno-0-22" name="__codelineno-0-22"></a>
+<a id="__codelineno-0-23" name="__codelineno-0-23"></a><span class="sd">    These events are the patient's own record and are deliberately not redacted;</span>
+<a id="__codelineno-0-24" name="__codelineno-0-24"></a><span class="sd">    redaction guards the log/trace boundary, not the answer a patient reads (§5.7).</span>
+<a id="__codelineno-0-25" name="__codelineno-0-25"></a>
+<a id="__codelineno-0-26" name="__codelineno-0-26"></a><span class="sd">    ``max_wait_seconds`` bounds the tail: a run that never reaches a terminal</span>
+<a id="__codelineno-0-27" name="__codelineno-0-27"></a><span class="sd">    status ends the stream with its current status rather than holding the</span>
+<a id="__codelineno-0-28" name="__codelineno-0-28"></a><span class="sd">    connection open forever.</span>
+<a id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="sd">    """</span>
+<a id="__codelineno-0-30" name="__codelineno-0-30"></a>    <span class="n">deadline</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">max_wait_seconds</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span> <span class="o">+</span> <span class="n">max_wait_seconds</span>
+<a id="__codelineno-0-31" name="__codelineno-0-31"></a>
+<a id="__codelineno-0-32" name="__codelineno-0-32"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">poll_end</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-33" name="__codelineno-0-33"></a>        <span class="n">run</span> <span class="o">=</span> <span class="n">run_store</span><span class="o">.</span><span class="n">get_run</span><span class="p">(</span><span class="n">run_id</span><span class="p">)</span>
+<a id="__codelineno-0-34" name="__codelineno-0-34"></a>        <span class="n">still_running</span> <span class="o">=</span> <span class="n">run</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">run</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"running"</span>
+<a id="__codelineno-0-35" name="__codelineno-0-35"></a>        <span class="n">timed_out</span> <span class="o">=</span> <span class="n">deadline</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="n">deadline</span>
+<a id="__codelineno-0-36" name="__codelineno-0-36"></a>        <span class="k">if</span> <span class="n">still_running</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">timed_out</span><span class="p">:</span>
+<a id="__codelineno-0-37" name="__codelineno-0-37"></a>            <span class="k">return</span> <span class="kc">None</span>
+<a id="__codelineno-0-38" name="__codelineno-0-38"></a>        <span class="n">status</span> <span class="o">=</span> <span class="n">run</span><span class="o">.</span><span class="n">status</span> <span class="k">if</span> <span class="n">run</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">"not_found"</span>
+<a id="__codelineno-0-39" name="__codelineno-0-39"></a>        <span class="n">answer</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">run</span><span class="o">.</span><span class="n">answer_json</span><span class="p">)</span> <span class="k">if</span> <span class="n">run</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">run</span><span class="o">.</span><span class="n">answer_json</span> <span class="k">else</span> <span class="kc">None</span>
+<a id="__codelineno-0-40" name="__codelineno-0-40"></a>        <span class="k">return</span> <span class="p">{</span><span class="s2">"status"</span><span class="p">:</span> <span class="n">status</span><span class="p">,</span> <span class="s2">"answer"</span><span class="p">:</span> <span class="n">answer</span><span class="p">}</span>
+<a id="__codelineno-0-41" name="__codelineno-0-41"></a>
+<a id="__codelineno-0-42" name="__codelineno-0-42"></a>    <span class="k">return</span> <span class="n">replay_and_tail</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="n">run_store</span><span class="o">.</span><span class="n">get_events</span><span class="p">,</span> <span class="n">run_id</span><span class="p">),</span> <span class="n">poll_end</span><span class="p">)</span>
 </code></pre></div></td></tr></tbody></table></div>
             </details>
     </div>
