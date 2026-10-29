@@ -60,7 +60,15 @@ def _run_from_row(row: tuple[object, ...]) -> RunRecord:
         answer_kind=None if row[6] is None else str(row[6]),
         answer_json=None if row[7] is None else str(row[7]),
         error=None if row[8] is None else str(row[8]),
+        conversation_id=str(row[9] if row[9] is not None else row[0]),
+        turn=int(str(row[10] or 0)),
     )
+
+
+_RUN_COLUMNS = (
+    "id, question, patient_id, status, created_at, updated_at, answer_kind, answer_json, "
+    "error, conversation_id, turn"
+)
 
 
 class RunStore:
@@ -73,28 +81,69 @@ class RunStore:
         # run executor from different threads/tasks against one connection.
         self._conn = sqlite3.connect(db_path, check_same_thread=False)
         self._conn.executescript(_SCHEMA)
+        self._migrate()
         self._conn.commit()
+
+    def _migrate(self) -> None:
+        """Adds the conversation columns to a database created before follow-ups
+        existed, and gives every existing run its own one-turn conversation. Safe to
+        run on every start."""
+        existing = {row[1] for row in self._conn.execute("PRAGMA table_info(conversations)")}
+        if "conversation_id" not in existing:
+            self._conn.execute("ALTER TABLE conversations ADD COLUMN conversation_id TEXT")
+        if "turn" not in existing:
+            self._conn.execute(
+                "ALTER TABLE conversations ADD COLUMN turn INTEGER NOT NULL DEFAULT 0"
+            )
+        self._conn.execute(
+            "UPDATE conversations SET conversation_id = id WHERE conversation_id IS NULL"
+        )
+        # One run per (conversation, turn): two follow-ups to the same answer race on
+        # this, and the loser's insert fails instead of forking the thread.
+        self._conn.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS ux_conversation_turn "
+            "ON conversations (conversation_id, turn)"
+        )
 
     def close(self) -> None:
         self._conn.close()
 
-    def create_run(self, run_id: str, question: str, patient_id: str) -> None:
+    def create_run(
+        self,
+        run_id: str,
+        question: str,
+        patient_id: str,
+        *,
+        conversation_id: str | None = None,
+        turn: int = 0,
+    ) -> None:
+        """Starts a run. A follow-up passes the conversation it continues and its turn
+        number; otherwise the run begins a new conversation. Raises
+        ``sqlite3.IntegrityError`` if that turn of the conversation already exists."""
         now = _now()
-        self._conn.execute(
-            "INSERT INTO conversations "
-            "(id, question, patient_id, status, created_at, updated_at) "
-            "VALUES (?, ?, ?, 'running', ?, ?)",
-            (run_id, question, patient_id, now, now),
-        )
-        self._conn.commit()
+        with self._conn:
+            self._conn.execute(
+                "INSERT INTO conversations "
+                "(id, question, patient_id, status, created_at, updated_at, conversation_id, turn) "
+                "VALUES (?, ?, ?, 'running', ?, ?, ?, ?)",
+                (run_id, question, patient_id, now, now, conversation_id or run_id, turn),
+            )
 
     def get_run(self, run_id: str) -> RunRecord | None:
         row = self._conn.execute(
-            "SELECT id, question, patient_id, status, created_at, updated_at, "
-            "answer_kind, answer_json, error FROM conversations WHERE id = ?",
+            f"SELECT {_RUN_COLUMNS} FROM conversations WHERE id = ?",  # noqa: S608 - fixed columns
             (run_id,),
         ).fetchone()
         return _run_from_row(row) if row else None
+
+    def conversation_runs(self, conversation_id: str) -> list[RunRecord]:
+        """Every turn of a conversation, oldest first."""
+        rows = self._conn.execute(
+            f"SELECT {_RUN_COLUMNS} FROM conversations "  # noqa: S608 - fixed columns
+            "WHERE conversation_id = ? ORDER BY turn ASC",
+            (conversation_id,),
+        ).fetchall()
+        return [_run_from_row(row) for row in rows]
 
     def complete_run(self, run_id: str, status: str, answer_kind: str, answer_json: str) -> None:
         """Move a run to a terminal, answered state. ``status`` is one of
@@ -113,6 +162,20 @@ class RunStore:
             (_now(), error, run_id),
         )
         self._conn.commit()
+
+    def fail_interrupted_runs(
+        self, error: str = "interrupted by a server restart before it finished"
+    ) -> int:
+        """Mark every ``running`` run as failed. Called once at startup: runs
+        execute in-process, so any still ``running`` when the process starts were
+        cut off by a restart and will never finish. Returns the number marked."""
+        with self._conn:
+            cur = self._conn.execute(
+                "UPDATE conversations SET status = 'failed', updated_at = ?, error = ? "
+                "WHERE status = 'running'",
+                (_now(), error),
+            )
+        return cur.rowcount
 
     def append_event(self, run_id: str, sequence: int, node: str, payload_json: str) -> None:
         self._conn.execute(

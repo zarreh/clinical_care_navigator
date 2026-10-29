@@ -20,6 +20,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from navigator.api import deps
 from navigator.api.main import app
 from navigator.graph.builder import NavigatorGraph, build_navigator_graph
+from navigator.graph.protocols import ContextualizerChain
 from navigator.schemas.answer import Citation, Claim, PatientAnswer
 from navigator.schemas.postflight import ExtractedClaims, ScopeJudgement
 from navigator.schemas.preflight import IntentAssessment
@@ -38,14 +39,17 @@ class _StubIntent:
 
 
 class _OneToolExplainer:
+    """Looks the lab up once per run, then says it is done. Per run, not per instance:
+    a conversation's later turns reuse one graph, so the stub decides from the messages
+    (has a tool result been returned yet?) rather than remembering it was called."""
+
     def __init__(self, patient_id: str, loinc: str) -> None:
         self._patient_id = patient_id
         self._loinc = loinc
-        self._called = False
 
-    def invoke(self, _messages: object) -> AIMessage:
-        if not self._called:
-            self._called = True
+    def invoke(self, messages: object) -> AIMessage:
+        already_looked_up = any(getattr(m, "type", "") == "tool" for m in messages)  # type: ignore[attr-defined]
+        if not already_looked_up:
             return AIMessage(
                 content="",
                 tool_calls=[
@@ -108,7 +112,12 @@ class NavigatorTestContext:
 
 
 def build_navigator_test_context(
-    tmp_path: Path, *, scope_violation: bool, draft_body: str = "Your result is recorded."
+    tmp_path: Path,
+    *,
+    scope_violation: bool,
+    draft_body: str = "Your result is recorded.",
+    contextualizer: ContextualizerChain | None = None,
+    settings_overrides: dict[str, object] | None = None,
 ) -> NavigatorTestContext:
     stores = build_fixture_stores(tmp_path)
     run_db = tmp_path / "runs.db"
@@ -119,6 +128,7 @@ def build_navigator_test_context(
         policy_db_path=str(stores.policy_db),
         run_store_path=str(run_db),
         checkpoint_db_path=str(checkpoint_db),
+        **(settings_overrides or {}),  # type: ignore[arg-type]
     )
     patient_id = stores.patient_ids[0]
     claim = Claim(
@@ -139,6 +149,7 @@ def build_navigator_test_context(
         answer_writer_chain=_FixedAnswerWriter(draft_body, [claim]),
         claim_extractor_chain=_FixedClaimExtractor([claim]),
         scope_judge_chain=_FixedScopeJudge(**judge_flags),
+        contextualizer_chain=contextualizer,
         checkpointer=MemorySaver(),
     )
     run_store = RunStore(run_db)

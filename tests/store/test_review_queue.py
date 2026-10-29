@@ -59,3 +59,31 @@ def test_unknown_action_is_rejected(tmp_path: Path) -> None:
 def test_unknown_review_is_none(tmp_path: Path) -> None:
     queue = ReviewQueue(tmp_path / "runs.db")
     assert queue.get("missing") is None
+
+
+def test_claim_is_won_exactly_once(tmp_path: Path) -> None:
+    queue = ReviewQueue(tmp_path / "runs.db")
+    _enqueue(queue, "rev-5", "run-5")
+
+    assert queue.claim("rev-5", "pending", "deciding") is True
+    assert queue.claim("rev-5", "pending", "deciding") is False
+    assert queue.get("rev-5").status == "deciding"  # type: ignore[union-attr]
+    # A review mid-decision is not offered to another clinician.
+    assert queue.list_pending() == []
+
+
+def test_claim_on_unknown_review_is_false(tmp_path: Path) -> None:
+    queue = ReviewQueue(tmp_path / "runs.db")
+    assert queue.claim("missing", "pending", "deciding") is False
+
+
+def test_release_stuck_decisions_returns_them_to_pending(tmp_path: Path) -> None:
+    queue = ReviewQueue(tmp_path / "runs.db")
+    _enqueue(queue, "rev-6", "run-6")
+    _enqueue(queue, "rev-7", "run-7")
+    queue.claim("rev-6", "pending", "deciding")
+    queue.resolve("rev-7", "approve")
+
+    assert queue.release_stuck_decisions() == 1
+    assert queue.get("rev-6").status == "pending"  # type: ignore[union-attr]
+    assert queue.get("rev-7").status == "approved"  # type: ignore[union-attr]

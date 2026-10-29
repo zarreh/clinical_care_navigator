@@ -21,6 +21,9 @@ class CreateConversationRequest(BaseModel):
     # Omitted means "answer as the demo patient": the API resolves a default
     # patient rather than trusting a client-supplied id for a portfolio demo.
     patient_id: str | None = Field(default=None, max_length=64)
+    # The run this question follows up. It must be the latest turn of its conversation,
+    # and the conversation stays with that run's patient.
+    follow_up_to: str | None = Field(default=None, max_length=64)
 
 
 class CreateConversationResponse(BaseModel):
@@ -39,6 +42,8 @@ class CostSummaryEntry(BaseModel):
 
 class ConversationResponse(BaseModel):
     id: str
+    conversation_id: str
+    turn: int
     question: str
     patient_id: str
     status: str
@@ -50,6 +55,47 @@ class ConversationResponse(BaseModel):
     total_cost_usd: float
     costs: list[CostSummaryEntry]
     disclaimer: str = DISCLAIMER
+
+
+class ThreadTurn(BaseModel):
+    run_id: str
+    turn: int
+    question: str
+    status: str
+
+
+class ThreadResponse(BaseModel):
+    """Every turn of the conversation a run belongs to, oldest first."""
+
+    conversation_id: str
+    patient_id: str
+    turns: list[ThreadTurn]
+
+
+class PersonaHistory(BaseModel):
+    """Counts only: how much record this persona has to ask about."""
+
+    labs: int
+    analytes: int
+    medications: int
+    conditions: int
+    encounters: int
+    notes: int
+
+
+class PersonaResponse(BaseModel):
+    """A demonstration patient a visitor can ask as (a demo selector, not a login)."""
+
+    patient_id: str
+    role: str
+    name: str
+    age: int | None
+    gender: str
+    language: str
+    literacy: str
+    headline: str
+    blurb: str
+    history: PersonaHistory
 
 
 class ReviewSummary(BaseModel):

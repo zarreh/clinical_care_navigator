@@ -29,7 +29,9 @@ async def stream_graph_events(
     yield json.dumps({"node": "__end__", "output": None})
 
 
-async def stream_conversation_events(run_store: RunStore, run_id: str) -> AsyncIterator[str]:
+async def stream_conversation_events(
+    run_store: RunStore, run_id: str, max_wait_seconds: float | None = None
+) -> AsyncIterator[str]:
     """Replays every event already persisted for a conversation, then — while the
     run is still executing — tails newly-appended events until it reaches a
     terminal status. Works identically whether the patient connects the instant a
@@ -37,7 +39,13 @@ async def stream_conversation_events(run_store: RunStore, run_id: str) -> AsyncI
 
     These events are the patient's own record and are deliberately not redacted;
     redaction guards the log/trace boundary, not the answer a patient reads (§5.7).
+
+    ``max_wait_seconds`` bounds the tail: a run that never reaches a terminal
+    status ends the stream with its current status rather than holding the
+    connection open forever.
     """
+    loop = asyncio.get_running_loop()
+    deadline = None if max_wait_seconds is None else loop.time() + max_wait_seconds
     last_sequence = -1
     while True:
         events = run_store.get_events(run_id, after_sequence=last_sequence)
@@ -47,6 +55,8 @@ async def stream_conversation_events(run_store: RunStore, run_id: str) -> AsyncI
 
         run = run_store.get_run(run_id)
         if run is None or run.status != "running":
+            break
+        if deadline is not None and loop.time() >= deadline:
             break
         await asyncio.sleep(_POLL_INTERVAL_SECONDS)
 

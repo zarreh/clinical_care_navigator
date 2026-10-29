@@ -43,6 +43,7 @@ logger = get_logger(__name__)
 _GRAPH_NODE_NAMES = frozenset(
     {
         "intake",
+        "contextualize",
         "screen_rules",
         "classify_intent",
         "detect_language",
@@ -80,6 +81,7 @@ async def execute_conversation(
     run_store: RunStore,
     review_queue: ReviewQueue,
     settings: Settings,
+    history: list[dict[str, str]] | None = None,
 ) -> None:
     structlog.contextvars.bind_contextvars(correlation_id=run_id)
     cost_handler = CostTrackingHandler()
@@ -98,6 +100,8 @@ async def execute_conversation(
             "patient_id": patient_id,
             "run_id": run_id,
         }
+        if history:
+            initial["history"] = history
         final_state: dict[str, object] = {}
         sequence = 0
 
@@ -268,3 +272,14 @@ async def resume_conversation(
         structlog.contextvars.unbind_contextvars("correlation_id")
     run = run_store.get_run(run_id)
     return run.status if run is not None else "failed"
+
+
+def recover_interrupted_work(run_store: RunStore, review_queue: ReviewQueue) -> None:
+    """Run once at startup. Runs execute in-process, so anything still
+    ``running`` was cut off by the restart and would otherwise spin forever in
+    the UI; a review left ``deciding`` goes back to ``pending`` so a clinician
+    can decide it again. Assumes one API process owns the run store."""
+    failed = run_store.fail_interrupted_runs()
+    released = review_queue.release_stuck_decisions()
+    if failed or released:
+        logger.warning("recovered_interrupted_work", failed_runs=failed, released_reviews=released)

@@ -40,6 +40,11 @@ class NavigatorState(TypedDict, total=False):
 
     # intake
     question: str
+    # Earlier turns of this conversation, oldest first, each {"question", "answer"}.
+    history: list[dict[str, str]]
+    # contextualize: set only when a follow-up was rewritten. `question` then holds the
+    # standalone rewrite and this holds the patient's own words.
+    original_question: str
     patient_id: str
     run_id: str
     literacy_level: str

@@ -25,9 +25,16 @@ from navigator.graph.builder import build_navigator_graph
 from navigator.settings import Settings
 from tests.fixtures import FixtureStores
 
-FRONTEND_TIMELINE = (
-    Path(__file__).resolve().parents[2] / "frontend" / "src" / "components" / "TraceTimeline.tsx"
-)
+FRONTEND_RUN_LIB = Path(__file__).resolve().parents[2] / "frontend" / "src" / "lib" / "run.ts"
+
+
+def _frontend_map_keys(name: str) -> set[str]:
+    """Keys of one `export const NAME: Record<string, ...> = { ... };` block."""
+    match = re.search(
+        rf"export const {name}\b[^=]*=\s*\{{(.*?)^\}};", FRONTEND_RUN_LIB.read_text(), re.S | re.M
+    )
+    assert match, f"{name} not found in {FRONTEND_RUN_LIB}"
+    return set(re.findall(r"^\s{2}(\w+):", match.group(1), re.MULTILINE))
 
 
 def _registered_nodes(stores: FixtureStores) -> set[str]:
@@ -53,6 +60,10 @@ def test_every_registered_node_is_streamed_by_the_executor(stores: FixtureStores
 
 
 def test_every_registered_node_has_a_frontend_label(stores: FixtureStores) -> None:
-    labelled = set(re.findall(r"^\s{2}(\w+):\s*\"", FRONTEND_TIMELINE.read_text(), re.MULTILINE))
-    missing = _registered_nodes(stores) - labelled
+    missing = _registered_nodes(stores) - _frontend_map_keys("NODE_LABELS")
     assert not missing, f"nodes the timeline would show under a raw identifier: {missing}"
+
+
+def test_every_registered_node_maps_to_a_stepper_stage(stores: FixtureStores) -> None:
+    missing = _registered_nodes(stores) - _frontend_map_keys("NODE_STAGE")
+    assert not missing, f"nodes the progress stepper would not advance on: {missing}"

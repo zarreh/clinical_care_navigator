@@ -11,11 +11,18 @@ from __future__ import annotations
 from typing import Protocol
 
 from navigator.schemas.postflight import ExtractedClaims, ScopeJudgement
-from navigator.schemas.preflight import IntentAssessment
+from navigator.schemas.preflight import IntentAssessment, StandaloneQuestion
 
 
 class IntentClassifierChain(Protocol):
     def invoke(self, input: dict[str, str]) -> IntentAssessment: ...
+
+
+class ContextualizerChain(Protocol):
+    """Rewrites a follow-up into a standalone question using the earlier turns. Only
+    called when there is history, so a first question never pays for it."""
+
+    def invoke(self, input: dict[str, str]) -> StandaloneQuestion: ...
 
 
 class ClaimExtractorChain(Protocol):

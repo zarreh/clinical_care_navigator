@@ -7,6 +7,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from navigator.api.run_executor import recover_interrupted_work
+from navigator.api.streaming import stream_conversation_events
+from navigator.store import ReviewQueue, RunStore
 from tests.api._navigator_client import build_navigator_test_context
 
 DISCLAIMER = (
@@ -67,3 +70,37 @@ def test_events_replay_to_end(tmp_path: Path) -> None:
 def test_events_for_unknown_conversation_is_404(tmp_path: Path) -> None:
     ctx = build_navigator_test_context(tmp_path, scope_violation=False)
     assert ctx.client.get("/conversations/nope/events").status_code == 404
+
+
+def test_unknown_patient_is_rejected_before_a_run_starts(tmp_path: Path) -> None:
+    ctx = build_navigator_test_context(tmp_path, scope_violation=False)
+    resp = ctx.client.post("/conversations", json={"question": "q", "patient_id": "nobody"})
+    assert resp.status_code == 404
+    assert resp.json()["detail"] == "no patient record with that id"
+
+
+async def test_event_tail_gives_up_on_a_run_that_never_finishes(tmp_path: Path) -> None:
+    store = RunStore(tmp_path / "runs.db")
+    store.create_run("stuck", "q", "patient-1")
+    store.append_event("stuck", 0, "intake", "{}")
+
+    events = [
+        json.loads(chunk)
+        async for chunk in stream_conversation_events(store, "stuck", max_wait_seconds=0.3)
+    ]
+
+    assert [e["node"] for e in events] == ["intake", "__end__"]
+    assert events[-1]["output"]["status"] == "running"
+
+
+def test_startup_recovery_fails_running_runs_and_releases_decisions(tmp_path: Path) -> None:
+    run_store = RunStore(tmp_path / "runs.db")
+    queue = ReviewQueue(tmp_path / "runs.db")
+    run_store.create_run("cut-off", "q", "patient-1")
+    queue.enqueue("rev", "held", "held", "patient-1", "scope_violation", None, "draft", "{}")
+    queue.claim("rev", "pending", "deciding")
+
+    recover_interrupted_work(run_store, queue)
+
+    assert run_store.get_run("cut-off").status == "failed"  # type: ignore[union-attr]
+    assert queue.get("rev").status == "pending"  # type: ignore[union-attr]

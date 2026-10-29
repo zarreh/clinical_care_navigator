@@ -58,8 +58,8 @@ def _item_from_row(row: tuple[object, ...]) -> ReviewItem:
 
 class ReviewQueue:
     """Persists drafts held for clinician review and their resolution. `GET
-    /reviews` reads `list_pending`; `POST /reviews/{id}/decision` reads `get` and
-    then `resolve`."""
+    /reviews` reads `list_pending`; `POST /reviews/{id}/decision` reads `get`,
+    atomically `claim`s the review (pending -> deciding), then `resolve`s it."""
 
     def __init__(self, db_path: Path) -> None:
         self._conn = sqlite3.connect(db_path, check_same_thread=False)
@@ -115,6 +115,27 @@ class ReviewQueue:
             "WHERE status = 'pending' ORDER BY created_at ASC",
         ).fetchall()
         return [_item_from_row(row) for row in rows]
+
+    def claim(self, review_id: str, from_status: str, to_status: str) -> bool:
+        """Atomically move a review between statuses. True only for the caller
+        whose conditional UPDATE matched, so two simultaneous decisions cannot
+        both resume the same checkpoint."""
+        with self._conn:
+            cur = self._conn.execute(
+                "UPDATE reviews SET status = ?, updated_at = ? WHERE id = ? AND status = ?",
+                (to_status, _now(), review_id, from_status),
+            )
+        return cur.rowcount == 1
+
+    def release_stuck_decisions(self) -> int:
+        """Return reviews left mid-decision by a restart to ``pending`` so a
+        clinician can decide them again. Called once at startup."""
+        with self._conn:
+            cur = self._conn.execute(
+                "UPDATE reviews SET status = 'pending', updated_at = ? WHERE status = 'deciding'",
+                (_now(),),
+            )
+        return cur.rowcount
 
     def resolve(self, review_id: str, action: str) -> None:
         """Move a review to its terminal status. ``action`` is one of

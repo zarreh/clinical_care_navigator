@@ -14,6 +14,7 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import aiosqlite
 import structlog
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,11 +22,14 @@ from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
+from navigator.api.deps import get_review_queue, get_run_store
 from navigator.api.middleware import MaxBodySizeMiddleware
 from navigator.api.rate_limit import limiter
-from navigator.api.routes import conversations, health, reviews
+from navigator.api.routes import conversations, health, personas, reviews
+from navigator.api.run_executor import recover_interrupted_work
+from navigator.graph.checkpoint_serde import build_checkpoint_serde
 from navigator.observability import configure_logging
-from navigator.settings import get_settings
+from navigator.settings import Settings, get_settings
 
 settings = get_settings()
 
@@ -51,10 +55,15 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     suspended review survives until a clinician decides — and across a restart
     — resuming from disk rather than a lost in-memory state (docs/PLAN.md
     §5.10). The real navigator graph is built lazily against it on the first
-    request (see deps.get_navigator_graph)."""
+    request (see deps.get_navigator_graph).
+
+    Before serving, runs a restart left mid-flight are marked failed (they can
+    never finish) so the UI shows an error instead of spinning forever."""
     Path(settings.checkpoint_db_path).parent.mkdir(parents=True, exist_ok=True)
-    async with AsyncSqliteSaver.from_conn_string(settings.checkpoint_db_path) as saver:
-        _app.state.checkpointer = saver
+    Path(settings.run_store_path).parent.mkdir(parents=True, exist_ok=True)
+    recover_interrupted_work(get_run_store(), get_review_queue())
+    async with aiosqlite.connect(settings.checkpoint_db_path) as conn:
+        _app.state.checkpointer = AsyncSqliteSaver(conn, serde=build_checkpoint_serde())
         yield
 
 
@@ -89,15 +98,29 @@ async def bind_correlation_id(
     return response
 
 
+_LOCALHOST_ORIGIN = r"https?://(localhost|127\.0\.0\.1)(:\d+)?"
+
+
+def cors_options(config: Settings) -> dict[str, object]:
+    """CORS policy: the configured frontend origins, plus, in development only, any
+    localhost port. `next dev` moves to :3001 when :3000 is taken, and a browser then
+    blocks every API call from the page. Production gets the explicit list and nothing
+    else, so a public deployment never trusts localhost."""
+    options: dict[str, object] = {
+        "allow_origins": config.frontend_origins,
+        "allow_methods": ["GET", "POST"],
+        "allow_headers": ["Content-Type"],
+    }
+    if config.environment == "development":
+        options["allow_origin_regex"] = _LOCALHOST_ORIGIN
+    return options
+
+
 # Added last so it is the outermost layer and answers preflights before anything else.
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.frontend_origins,
-    allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type"],
-)
+app.add_middleware(CORSMiddleware, **cors_options(settings))  # type: ignore[arg-type]
 
 
 app.include_router(health.router)
 app.include_router(conversations.router)
+app.include_router(personas.router)
 app.include_router(reviews.router)

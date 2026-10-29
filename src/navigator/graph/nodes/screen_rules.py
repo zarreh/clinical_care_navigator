@@ -17,6 +17,20 @@ def build_screen_rules_node(
     rule_engine: RuleEngine,
 ) -> Callable[[NavigatorState], dict[str, object]]:
     def screen_rules_node(state: NavigatorState) -> dict[str, object]:
-        return {"rule_matches": rule_engine.screen(state["question"])}
+        # A rewritten follow-up is screened as well as the patient's own words, so the
+        # rewrite cannot hide a red flag the patient actually typed.
+        texts = [state["question"]]
+        original = state.get("original_question")
+        if original and original != state["question"]:
+            texts.append(original)
+        matches = []
+        seen: set[tuple[str, str]] = set()
+        for text in texts:
+            for match in rule_engine.screen(text):
+                key = (match.rule_id, match.matched_span.lower())
+                if key not in seen:
+                    seen.add(key)
+                    matches.append(match)
+        return {"rule_matches": matches}
 
     return screen_rules_node

@@ -24,6 +24,7 @@ from navigator.store.models import (
     ClinicalNote,
     Condition,
     Encounter,
+    HistorySummary,
     Medication,
     Observation,
     Patient,
@@ -202,5 +203,30 @@ class RecordStore:
         return [ReferenceRange(*row) for row in rows]
 
     def patient_ids(self) -> list[str]:
-        """Every patient id. Used by the data profile and the eval harness only."""
-        return [str(row[0]) for row in self._connection.execute("SELECT patient_id FROM patients")]
+        """Every patient id. Used by the data profile, the eval harness and the
+        demonstration-persona selection; never by a tool the model can call."""
+        return [
+            str(row[0])
+            for row in self._connection.execute("SELECT patient_id FROM patients ORDER BY rowid")
+        ]
+
+    def history_summary(self, patient_id: str) -> HistorySummary:
+        """Counts of what the record holds for one patient: aggregates only, no
+        clinical content, and uncapped because no row is returned."""
+        row = self._connection.execute(
+            "SELECT "
+            "(SELECT COUNT(*) FROM observations "
+            " WHERE patient_id = :p AND category = 'laboratory'), "
+            "(SELECT COUNT(DISTINCT lower(description)) FROM observations "
+            " WHERE patient_id = :p AND category = 'laboratory'), "
+            "(SELECT COUNT(*) FROM medications WHERE patient_id = :p), "
+            "(SELECT COUNT(*) FROM conditions WHERE patient_id = :p), "
+            "(SELECT COUNT(*) FROM encounters WHERE patient_id = :p), "
+            "(SELECT COUNT(*) FROM procedures WHERE patient_id = :p), "
+            "(SELECT COUNT(*) FROM allergies WHERE patient_id = :p), "
+            "(SELECT COUNT(*) FROM clinical_notes WHERE patient_id = :p), "
+            "(SELECT COUNT(*) FROM clinical_notes WHERE patient_id = :p "
+            " AND fixture_kind = 'indirect_prompt_injection')",
+            {"p": patient_id},
+        ).fetchone()
+        return HistorySummary(patient_id, *(int(value) for value in row))

@@ -11,7 +11,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from tests.api._navigator_client import build_navigator_test_context
+import pytest
+
+from navigator.api.routes import reviews as reviews_route
+from navigator.store.models import ReviewItem
+from tests.api._navigator_client import NavigatorTestContext, build_navigator_test_context
 
 
 def test_review_resume_approve_publishes_unchanged(tmp_path: Path) -> None:
@@ -82,3 +86,38 @@ def test_decision_on_unknown_review_is_404(tmp_path: Path) -> None:
     ctx = build_navigator_test_context(tmp_path, scope_violation=True)
     resp = ctx.client.post("/reviews/does-not-exist/decision", json={"action": "approve"})
     assert resp.status_code == 404
+
+
+def _held_review(tmp_path: Path) -> tuple[NavigatorTestContext, dict[str, str]]:
+    ctx = build_navigator_test_context(tmp_path, scope_violation=True)
+    ctx.client.post("/conversations", json={"question": "q", "patient_id": ctx.patient_id})
+    return ctx, ctx.client.get("/reviews").json()[0]
+
+
+def test_second_decision_on_the_same_review_is_409(tmp_path: Path) -> None:
+    ctx, review = _held_review(tmp_path)
+    first = ctx.client.post(f"/reviews/{review['id']}/decision", json={"action": "approve"})
+    second = ctx.client.post(f"/reviews/{review['id']}/decision", json={"action": "decline"})
+
+    assert first.status_code == 200
+    assert second.status_code == 409
+    assert "already approved" in second.json()["detail"]
+    assert ctx.review_queue.get(review["id"]).status == "approved"  # type: ignore[union-attr]
+
+
+def test_failed_resume_returns_the_review_to_pending(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ctx, review = _held_review(tmp_path)
+
+    async def _failing_resume(review_item: ReviewItem, *_args: object) -> str:
+        ctx.run_store.fail_run(review_item.run_id, "model unavailable")
+        return "failed"
+
+    monkeypatch.setattr(reviews_route, "resume_conversation", _failing_resume)
+    resp = ctx.client.post(f"/reviews/{review['id']}/decision", json={"action": "approve"})
+
+    assert resp.status_code == 502
+    assert "model unavailable" in resp.json()["detail"]
+    assert ctx.review_queue.get(review["id"]).status == "pending"  # type: ignore[union-attr]
+    assert [r["id"] for r in ctx.client.get("/reviews").json()] == [review["id"]]

@@ -12,4 +12,6 @@ from navigator.guardrails.language import detect_question_language
 
 
 def detect_language_node(state: NavigatorState) -> dict[str, object]:
-    return {"question_language": detect_question_language(state["question"])}
+    # The patient's own words, not the English rewrite a follow-up may have been given.
+    text = state.get("original_question") or state["question"]
+    return {"question_language": detect_question_language(text)}

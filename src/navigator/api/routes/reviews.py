@@ -19,7 +19,7 @@ from navigator.api.deps import (
     get_run_store,
     settings_dependency,
 )
-from navigator.api.rate_limit import DEFAULT_RATE_LIMIT, limiter
+from navigator.api.rate_limit import READ_RATE_LIMIT, WRITE_RATE_LIMIT, limiter
 from navigator.api.run_executor import resume_conversation
 from navigator.api.schemas import (
     ReviewDecisionRequest,
@@ -34,7 +34,7 @@ router = APIRouter(prefix="/reviews", tags=["reviews"])
 
 
 @router.get("")
-@limiter.limit(DEFAULT_RATE_LIMIT)
+@limiter.limit(READ_RATE_LIMIT)
 async def list_reviews(
     request: Request,
     review_queue: Annotated[ReviewQueue, Depends(get_review_queue)],
@@ -55,7 +55,7 @@ async def list_reviews(
 
 
 @router.post("/{review_id}/decision")
-@limiter.limit(DEFAULT_RATE_LIMIT)
+@limiter.limit(WRITE_RATE_LIMIT)
 async def decide_review(
     request: Request,
     review_id: str,
@@ -68,8 +68,6 @@ async def decide_review(
     review = review_queue.get(review_id)
     if review is None:
         raise HTTPException(status_code=404, detail="review not found")
-    if review.status != "pending":
-        raise HTTPException(status_code=409, detail=f"review already {review.status}")
 
     resume_value: dict[str, object] = {"action": body.action}
     if body.action == "edit":
@@ -77,9 +75,33 @@ async def decide_review(
             raise HTTPException(status_code=422, detail="edit requires edited_body")
         resume_value["edited_body"] = body.edited_body
 
-    run_status = await resume_conversation(
-        review, resume_value, graph, run_store, review_queue, settings
-    )
+    # One conditional UPDATE decides who resumes the checkpoint; a double click or
+    # a second reviewer loses here instead of resuming the same run twice.
+    if not review_queue.claim(review_id, "pending", "deciding"):
+        current = review_queue.get(review_id)
+        status = current.status if current is not None else "gone"
+        state = "being decided by someone else" if status == "deciding" else status
+        raise HTTPException(
+            status_code=409,
+            detail=f"This review is already {state}; refresh the queue to see its outcome.",
+        )
+
+    try:
+        run_status = await resume_conversation(
+            review, resume_value, graph, run_store, review_queue, settings
+        )
+    except Exception:
+        review_queue.claim(review_id, "deciding", "pending")
+        raise
+    if run_status == "failed":
+        # Back to pending so the clinician can retry; the run record holds the error.
+        review_queue.claim(review_id, "deciding", "pending")
+        run = run_store.get_run(review.run_id)
+        reason = run.error if run is not None and run.error else "unknown error"
+        raise HTTPException(
+            status_code=502,
+            detail=f"The decision could not be applied ({reason}). It is still pending; try again.",
+        )
     # The queue maps approve/edit/decline to its terminal status itself.
     review_queue.resolve(review_id, body.action)
     return ReviewDecisionResponse(

@@ -269,6 +269,10 @@ class RunRecord:
     answer_kind: str | None
     answer_json: str | None
     error: str | None
+    # A conversation is a chain of runs ("turns"). A run that is not a follow-up is
+    # turn 0 of a conversation whose id is its own.
+    conversation_id: str
+    turn: int
 
 
 @dataclass(frozen=True)
@@ -304,3 +308,39 @@ class ReviewItem:
     status: str
     created_at: str
     updated_at: str
+
+
+@dataclass(frozen=True)
+class HistorySummary:
+    """How much record a patient has, as counts only (no row content).
+
+    Used to pick demonstration patients whose history is rich enough to be worth
+    asking about. Counts are aggregates, so unlike row reads they are not capped.
+    """
+
+    patient_id: str
+    labs: int
+    analytes: int
+    medications: int
+    conditions: int
+    encounters: int
+    procedures: int
+    allergies: int
+    notes: int
+    injection_notes: int
+
+    @property
+    def richness(self) -> int:
+        """A single ordering key. Distinct analytes and conditions count double: a
+        record with many *kinds* of data is more interesting than one with many
+        repeats of one lab."""
+        return (
+            self.labs
+            + 2 * self.analytes
+            + self.medications
+            + 2 * self.conditions
+            + self.encounters
+            + self.procedures
+            + self.allergies
+            + self.notes
+        )

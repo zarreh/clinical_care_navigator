@@ -14,9 +14,11 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Annotated
 
-from fastapi import Request
+from fastapi import Depends, Request
 
+from navigator.api.personas import Persona, personas_for
 from navigator.graph.builder import (
     NavigatorGraph,
     SkeletonGraph,
@@ -54,6 +56,13 @@ def get_record_store() -> RecordStore:
     with ``check_same_thread=False``.
     """
     return RecordStore(Path(get_settings().record_db_path))
+
+
+def get_personas(
+    record_store: Annotated[RecordStore, Depends(get_record_store)],
+) -> tuple[Persona, ...]:
+    """The demonstration personas, selected once per record store."""
+    return personas_for(record_store)
 
 
 @lru_cache

@@ -22,6 +22,9 @@ class Settings(AgentSettings):
     # A blank demo patient means "resolve the first patient in the record store"
     # so the patient-facing API has a sane default without hard-coding an id.
     demo_patient_id: str = ""
+    # The API only answers as a demonstration persona (see GET /personas) rather than
+    # any patient id a caller supplies. This is a demo guard, not authentication.
+    demo_patients_only: bool = True
 
     # docs/PLAN.md §5.9 — moves the inform/recommend boundary only, never the
     # escalation boundary.
@@ -35,6 +38,17 @@ class Settings(AgentSettings):
 
     # Tighter than the library default: a patient question is a sentence or two.
     max_request_body_bytes: int = 8_192
+
+    # Split per-IP limits: routes that start or resume an LLM run spend money and
+    # get the strict ceiling; reads and the SSE replay are cheap, and one page view
+    # makes several of them, so a single shared ceiling locked the UI out.
+    write_rate_limit_per_minute: int = 10
+    read_rate_limit_per_minute: int = 120
+
+    # Follow-up questions: how many turns one conversation may have, and how many of the
+    # most recent ones are shown to the rewriter as context.
+    max_conversation_turns: int = 8
+    conversation_context_turns: int = 3
 
     frontend_origins: list[str] = ["http://localhost:3000"]
 

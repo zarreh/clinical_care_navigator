@@ -139,3 +139,20 @@ class PolicyDecision(BaseModel):
     autonomy_level: str
     template_id: str | None = None
     language_limitation: bool = False
+
+
+class StandaloneQuestion(BaseModel):
+    """The contextualizer's output: a follow-up rewritten so it can be understood
+    without the earlier turns ("what about the one before that?" becomes "What was my
+    previous A1c result?"). A question that was already standalone is returned as is."""
+
+    model_config = ConfigDict(frozen=True)
+
+    question: str = Field(
+        min_length=1,
+        max_length=600,
+        description="The patient's message as a complete, self-contained question.",
+    )
+    is_follow_up: bool = Field(
+        description="True only if the message depended on the earlier turns to make sense."
+    )

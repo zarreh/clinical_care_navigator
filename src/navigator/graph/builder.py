@@ -21,6 +21,7 @@ from langgraph.types import Checkpointer
 from navigator.graph.agents.explainer import Explainer, build_explainer
 from navigator.graph.chains.answer_writer import AnswerWriterChain, build_answer_writer_chain
 from navigator.graph.chains.claim_extractor import build_claim_extractor_chain
+from navigator.graph.chains.contextualizer import build_contextualizer_chain
 from navigator.graph.chains.intent_classifier import build_intent_classifier_chain
 from navigator.graph.chains.scope_judge import build_scope_judge_chain
 from navigator.graph.edges import (
@@ -30,6 +31,7 @@ from navigator.graph.edges import (
 )
 from navigator.graph.nodes.budget_exceeded import budget_exceeded_node
 from navigator.graph.nodes.classify_intent import build_classify_intent_node
+from navigator.graph.nodes.contextualize import build_contextualize_node
 from navigator.graph.nodes.detect_language import detect_language_node
 from navigator.graph.nodes.done import done
 from navigator.graph.nodes.draft_answer import build_draft_answer_node
@@ -46,6 +48,7 @@ from navigator.graph.nodes.template_response import build_template_response_node
 from navigator.graph.policies import build_fast_model, build_reasoning_model
 from navigator.graph.protocols import (
     ClaimExtractorChain,
+    ContextualizerChain,
     IntentClassifierChain,
     ScopeJudgeChain,
 )
@@ -79,6 +82,7 @@ def build_navigator_graph(
     explainer: Explainer | None = None,
     claim_extractor_chain: ClaimExtractorChain | None = None,
     scope_judge_chain: ScopeJudgeChain | None = None,
+    contextualizer_chain: ContextualizerChain | None = None,
     checkpointer: Checkpointer = None,
 ) -> NavigatorGraph:
     """The only function that wires the navigator graph's nodes and edges.
@@ -117,12 +121,18 @@ def build_navigator_graph(
         if scope_judge_chain is None:
             # The scope judge is the one graded call -> reasoning model.
             scope_judge_chain = build_scope_judge_chain(reasoning_model)
+        if contextualizer_chain is None:
+            # Rewriting a follow-up is mechanical -> fast model. Only ever called when a
+            # conversation has earlier turns.
+            contextualizer_chain = build_contextualizer_chain(fast_model)
 
     workflow = StateGraph(NavigatorState)
     # mypy cannot resolve add_node's overloads against a factory-returned
     # Callable (vs. a plain top-level function) — confirmed upstream limitation,
     # not a real type error; each node is unit-tested directly in tests/graph/.
     workflow.add_node("intake", build_intake_node(record_store, settings))  # type: ignore[arg-type]
+    # With no chain (the all-stub offline graphs) a follow-up is simply not rewritten.
+    workflow.add_node("contextualize", build_contextualize_node(contextualizer_chain))  # type: ignore[arg-type]
     workflow.add_node("screen_rules", build_screen_rules_node(rule_engine))  # type: ignore[arg-type]
     workflow.add_node("classify_intent", build_classify_intent_node(intent_chain))  # type: ignore[arg-type]
     workflow.add_node("detect_language", detect_language_node)
@@ -157,10 +167,11 @@ def build_navigator_graph(
 
     workflow.set_entry_point("intake")
     # screen_rules, classify_intent and detect_language run in parallel after
-    # intake (§5.1); resolve_policy is their join.
-    workflow.add_edge("intake", "screen_rules")
-    workflow.add_edge("intake", "classify_intent")
-    workflow.add_edge("intake", "detect_language")
+    # contextualize (which follows intake, §5.1); resolve_policy is their join.
+    workflow.add_edge("intake", "contextualize")
+    workflow.add_edge("contextualize", "screen_rules")
+    workflow.add_edge("contextualize", "classify_intent")
+    workflow.add_edge("contextualize", "detect_language")
     workflow.add_edge("screen_rules", "resolve_policy")
     workflow.add_edge("classify_intent", "resolve_policy")
     workflow.add_edge("detect_language", "resolve_policy")
