@@ -1,0 +1,9 @@
+# Host Nginx override: loopback-only ports so the host proxy can reach the containers.
+# Use with: docker compose -f compose.prod.yaml -f compose.nginx.yaml up -d
+services:
+  navigator-api:
+    ports:
+      - "127.0.0.1:18002:8000"
+  navigator-web:
+    ports:
+      - "127.0.0.1:13002:3000"
